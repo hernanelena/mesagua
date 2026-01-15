@@ -49,13 +49,9 @@ def mapear_nombres_claros(valor, tipo):
             "sistema_de_almacenamiento__cis": "Sistema de almacenamiento (cisterna, tanque)"
         }
     }
-    
     v_clean = str(valor).lower().strip()
-    
     if tipo == "problemas":
-        # Si el problema está en nuestro mapeo, devolvemos el nombre lindo, sino devolvemos "Otras"
         return mapeos_maestros["problemas"].get(v_clean, "Otras")
-        
     return mapeos_maestros.get(tipo, {}).get(v_clean, valor)
 
 @st.cache_data(ttl=60)
@@ -128,6 +124,7 @@ else:
     df_filtrado = pd.DataFrame()
 
 if not df_filtrado.empty:
+    # --- PARTE DEL MAPA ---
     m = folium.Map(location=[df_filtrado['lat'].mean(), df_filtrado['lon'].mean()], zoom_start=8, tiles=None)
     folium.TileLayer(tiles="https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG%3A3857@png/{z}/{x}/{-y}.png", attr='IGN', name='Argenmap (IGN)', overlay=False).add_to(m)
     folium.TileLayer(tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", attr='Google', name='Google Satélite', overlay=False).add_to(m)
@@ -145,34 +142,46 @@ if not df_filtrado.empty:
         pop_html = f"<div style='font-family:Arial; min-width:180px;'><b style='color:{conf['hex']}'>{titulo_display.upper()}</b><br><b>Fecha:</b> {f_str}<br><b>En Uso:</b> {reg.get('En_uso','-')}</div>"
         folium.Marker([reg['lat'], reg['lon']], popup=folium.Popup(pop_html, max_width=250), icon=folium.Icon(color=conf["color"], icon='tint')).add_to(m)
 
-    salida_mapa = st_folium(m, width="100%", height=600, key="mapa_agua")
+    # --- LLAMADA AL MAPA CON returned_objects ---
+    salida_mapa = st_folium(
+        m, 
+        width="100%", 
+        height=600, 
+        key="mapa_agua",
+        returned_objects=["last_object_clicked"] 
+    )
 
     with st.sidebar:
         st.markdown('<div class="ficha-header">DATOS DEL RELEVAMIENTO</div>', unsafe_allow_html=True)
         punto_click = salida_mapa.get("last_object_clicked")
         if punto_click:
             lat, lon = punto_click['lat'], punto_click['lng']
-            seleccion = df_filtrado[(abs(df_filtrado['lat'] - lat) < 0.0001) & (abs(df_filtrado['lon'] - lon) < 0.0001)].iloc[0]
-            foto_url = next((seleccion[c] for c in df_filtrado.columns if 'URL' in c.upper() and isinstance(seleccion[c], str) and seleccion[c].startswith('http')), None)
-            if foto_url: st.image(foto_url, use_container_width=True)
-            st.markdown(f"### {mapa_config.get(str(seleccion.get('tecnolog')), mapa_config['otros'])['titulo']}")
-            datos_ficha = {
-                "📅 Fecha": ["fecha_limpia", None],
-                "🏗️ Estado de Obra": ["Estado_de_la_obra", "estado"],
-                "💧 Otras Fuentes": ["Detalle_otras_fuentes_de_agua", None],
-                "🛠️ Asistencia Técnica": ["Asistencia_t_cnica_de_la_obra", "asistencia"],
-                "✅ En Uso": ["En_uso", None],
-                "⚠️ Problemas": ["Problemas_asociados_al_No_uso", "problemas"],
-                "🧔 Usuario": ["Usuario", "usuario"],
-                "👨‍👩‍👧‍👦 Familias": ["Cantidad_de_familias_usuarias", None],
-                "🧪 Calidad Agua": ["Calidad_del_agua", "calidad"],
-                "🧼 Tratamiento": ["Realiza_treatment_del_agua_a", None],
-                "❓ Cuál tratamiento": ["Cual", None]
-            }
-            for etiqueta, (kws, tipo_mapa) in datos_ficha.items():
-                valor = buscar_v(seleccion, [kws])
-                if tipo_mapa: valor = mapear_nombres_claros(valor, tipo_mapa)
-                st.write(f"**{etiqueta}:** {valor}")
+            seleccion_df = df_filtrado[(abs(df_filtrado['lat'] - lat) < 0.001) & (abs(df_filtrado['lon'] - lon) < 0.001)]
+            
+            if not seleccion_df.empty:
+                seleccion = seleccion_df.iloc[0]
+                foto_url = next((seleccion[c] for c in df_filtrado.columns if 'URL' in c.upper() and isinstance(seleccion[c], str) and seleccion[c].startswith('http')), None)
+                if foto_url: st.image(foto_url, use_container_width=True)
+                st.markdown(f"### {mapa_config.get(str(seleccion.get('tecnolog')), mapa_config['otros'])['titulo']}")
+                datos_ficha = {
+                    "📅 Fecha": ["fecha_limpia", None],
+                    "🏗️ Estado de Obra": ["Estado_de_la_obra", "estado"],
+                    "💧 Otras Fuentes": ["Detalle_otras_fuentes_de_agua", None],
+                    "🛠️ Asistencia Técnica": ["Asistencia_t_cnica_de_la_obra", "asistencia"],
+                    "✅ En Uso": ["En_uso", None],
+                    "⚠️ Problemas": ["Problemas_asociados_al_No_uso", "problemas"],
+                    "🧔 Usuario": ["Usuario", "usuario"],
+                    "👨‍👩‍👧‍👦 Familias": ["Cantidad_de_familias_usuarias", None],
+                    "🧪 Calidad Agua": ["Calidad_del_agua", "calidad"],
+                    "🧼 Tratamiento": ["Realiza_treatment_del_agua_a", None],
+                    "❓ Cuál tratamiento": ["Cual", None]
+                }
+                for etiqueta, (kws, tipo_mapa) in datos_ficha.items():
+                    valor = buscar_v(seleccion, [kws])
+                    if tipo_mapa: valor = mapear_nombres_claros(valor, tipo_mapa)
+                    st.write(f"**{etiqueta}:** {valor}")
+            else:
+                st.warning("No se encontraron datos para este punto.")
         else:
             st.info("💡 Haz clic en un marcador para ver la ficha técnica.")
 
@@ -206,7 +215,7 @@ if not df_filtrado.empty:
             df_filtrado['asistencia_txt'] = df_filtrado['Asistencia_t_cnica_de_la_obra'].apply(lambda x: mapear_nombres_claros(x, 'asistencia'))
             asistencia_data = df_filtrado['asistencia_txt'].value_counts().reset_index()
             fig4 = px.bar(asistencia_data, x='asistencia_txt', y='count', title="Asistencia Técnica",
-                         labels={'count':'Obras', 'asistencia_txt':'Origen'})
+                          labels={'count':'Obras', 'asistencia_txt':'Origen'})
             fig4.update_traces(hovertemplate="Tipo: %{x}<br>Total: %{y}")
             st.plotly_chart(fig4, use_container_width=True)
 
@@ -214,7 +223,7 @@ if not df_filtrado.empty:
         df_filtrado['usuario_txt'] = df_filtrado['Usuario'].apply(lambda x: mapear_nombres_claros(x, 'usuario'))
         usuario_data = df_filtrado['usuario_txt'].value_counts().reset_index()
         fig5 = px.bar(usuario_data, x='count', y='usuario_txt', orientation='h', title="Tipos de Usuarios",
-                     labels={'count':'Registros', 'usuario_txt':'Categoría'})
+                      labels={'count':'Registros', 'usuario_txt':'Categoría'})
         fig5.update_traces(hovertemplate="Usuario: %{y}<br>Cantidad: %{x}")
         st.plotly_chart(fig5, use_container_width=True)
 
@@ -227,7 +236,7 @@ if not df_filtrado.empty:
                           title="Causas del No Uso (Obras Inactivas)",
                           color='count', color_continuous_scale='Reds',
                           labels={'count':'Frecuencia', 'prob_txt':'Motivo detectado'})
-            fig6.update_layout(yaxis={'categoryorder':'total ascending'}) # Ordena por importancia
+            fig6.update_layout(yaxis={'categoryorder':'total ascending'})
             fig6.update_traces(hovertemplate="Problema: %{y}<br>Obras afectadas: %{x}")
             st.plotly_chart(fig6, use_container_width=True)
         else:
@@ -236,5 +245,3 @@ if not df_filtrado.empty:
     st.write(f"✅ Registros filtrados: {len(df_filtrado)}")
 else:
     st.warning("No hay datos para los filtros seleccionados.")
-
-
