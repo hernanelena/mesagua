@@ -99,7 +99,7 @@ def buscar_v(registro, keywords):
             return str(val)
     return "No reg."
 
-st.markdown('<div class="titulo-responsive">📍 Monitoreo Mesa de Agua</div>', unsafe_allow_html=True)
+st.markdown('<div class="titulo-responsive">💧 Mesa de Agua</div>', unsafe_allow_html=True)
 
 if not df_raw.empty:
     with st.expander("🔍 Opciones de Filtro", expanded=False):
@@ -245,3 +245,4 @@ if not df_filtrado.empty:
     st.write(f"✅ Registros filtrados: {len(df_filtrado)}")
 else:
     st.warning("No hay datos para los filtros seleccionados.")
+
