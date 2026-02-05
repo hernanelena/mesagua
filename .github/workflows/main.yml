@@ -1,0 +1,13 @@
+name: Despertar MesAgua
+on:
+  schedule:
+    - cron: '0 10,22 * * *' # Se ejecuta a las 10 AM y 10 PM UTC
+  workflow_dispatch:      # Esto te permite probarlo con un botón
+
+jobs:
+  ping_app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Visitar la App
+        run: |
+          curl -I -L --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" https://mesagua.streamlit.app/
