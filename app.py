@@ -243,8 +243,9 @@ if not df_filtrado.empty:
         else:
             st.success("✨ ¡Genial! Según los filtros aplicados, todas las obras están en uso.")
 
-    st.write(f"✅ Registros filtrados: {len(df_filtrado)}")
+    
 else:
     st.warning("No hay datos para los filtros seleccionados.")
+
 
 
