@@ -1,7 +1,7 @@
 name: Despertar MesAgua
 on:
   schedule:
-    - cron: '0 10,22 * * *'
+    - cron: '0 4,10,18,22 * * *'
   workflow_dispatch:
 
 jobs:
