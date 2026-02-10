@@ -188,6 +188,7 @@ if not df_filtrado.empty:
     # --- DASHBOARD DE ESTADÍSTICAS ---
     st.markdown("---")
     st.markdown("### 📊 Tablero de Resumen")
+    st.write(f"✅ Registros filtrados: {len(df_filtrado)}")
     t1, t2, t3, t4 = st.tabs(["🏗️ Tecnologías y Estado", "💧 Calidad y Asistencia", "👥 Usuarios", "⚠️ Problemas (No Uso)"])
 
     with t1:
@@ -245,4 +246,5 @@ if not df_filtrado.empty:
     st.write(f"✅ Registros filtrados: {len(df_filtrado)}")
 else:
     st.warning("No hay datos para los filtros seleccionados.")
+
 
