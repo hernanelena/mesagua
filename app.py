@@ -243,9 +243,24 @@ if not df_filtrado.empty:
         else:
             st.success("✨ ¡Genial! Según los filtros aplicados, todas las obras están en uso.")
 
+    # --- INFO INSTITUCIONAL COMPLETA ---
+    st.markdown("---")
+    with st.expander("ℹ️ Información sobre la Mesa de Agua"):
+        st.markdown("""
+        La Mesa de Agua ha promovido el mapeo e integración de más de 300 obras de agua en estos departamentos. La base de datos generada, sistematiza la localización, tipo de tecnología, población beneficiaria y estado funcional de cada obra, y se actualiza periódicamente con la colaboración de INTA, FUNDAPAZ, ONG, Gobierno Provincial, municipios y comunidades.
+        
+        El mapeo digital de obras de agua en el Chaco Salteño, es una iniciativa impulsada por la Mesa de Agua con el objetivo de relevar, sistematizar y visualizar de manera accesible las obras de agua existentes y en desarrollo en el territorio. Este instrumento busca contribuir a una gestión más eficiente, equitativa y transparente del acceso al agua, poniendo en valor el conocimiento construido colectivamente.
+                
+        Propósito: Fortalecer el plan de seguimiento de obras, ya que está concebida como una base de datos viva, con actualización en línea y con capacidad para analizar el uso, el estado y la calidad de las obras construidas.
+        
+        **Equipo de trabajo:**
+        INTA, FUNDAPAZ, ONG, Gobierno Provincial, municipios y comunidades
+        
+         """)
     
 else:
     st.warning("No hay datos para los filtros seleccionados.")
+
 
 
 
