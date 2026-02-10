@@ -255,11 +255,14 @@ if not df_filtrado.empty:
         
         **Equipo de trabajo:**
         INTA, FUNDAPAZ, ONG, Gobierno Provincial, municipios y comunidades
-        
-         """)
+
+        Para más información, podés contactarnos en: [elena.hernan@inta.gob.ar](mailto:elena.hernan@inta.gob.ar)
+
+         """,unsafe_allow_html=True)
     
 else:
     st.warning("No hay datos para los filtros seleccionados.")
+
 
 
 
