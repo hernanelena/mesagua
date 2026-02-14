@@ -54,7 +54,7 @@ def mapear_nombres_claros(valor, tipo):
         return mapeos_maestros["problemas"].get(v_clean, "Otras")
     return mapeos_maestros.get(tipo, {}).get(v_clean, valor)
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=3600)
 def cargar_datos():
     try:
         r = requests.get(URL_MESAAGUA, headers=HEADERS)
@@ -262,6 +262,7 @@ if not df_filtrado.empty:
     
 else:
     st.warning("No hay datos para los filtros seleccionados.")
+
 
 
 
