@@ -3,6 +3,7 @@
 # Resumen territorial estilo XLS + PDF + Asignación espacial
 # ============================================
 
+import os
 import streamlit as st
 import pandas as pd
 import requests
@@ -27,16 +28,24 @@ except Exception:
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.units import cm
+from reportlab.pdfgen import canvas  # para dibujar encabezado en todas las páginas
 
 # 1. CONFIGURACIÓN
 st.set_page_config(page_title="MAPA MESA DE AGUA", layout="wide")
 
 FORM_ID = "aHNGU6dn2MFGMpg9Y5M5sn"
 TOKEN = st.secrets["KOBO_TOKEN"]
+
 URL_MESAAGUA = f"https://territorios.inta.gob.ar/api/v2/assets/{FORM_ID}/data/?format=json"
 HEADERS = {'Authorization': f'Token {TOKEN}'}
+
+# Ruta del logo (debe estar junto al script)
+LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo_mesa.png")
+
+# ===== Margen superior del PDF (usado por el doc) =====
+PDF_TOP_MARGIN = 3.2 *cm  # subilo a 5*cm si agrandás más el logo
 
 # --- ESTILOS CSS ---
 st.markdown(
@@ -90,6 +99,7 @@ def mapear_nombres_claros(valor, tipo):
         return mapeos_maestros["problemas"].get(v_clean, "Otras")
     return mapeos_maestros.get(tipo, {}).get(v_clean, valor if valor not in [None, ""] else "Otros")
 
+
 @st.cache_data(ttl=60)
 def cargar_datos():
     try:
@@ -127,6 +137,7 @@ def cargar_datos():
         st.error(f"Error: {e}")
         return pd.DataFrame()
 
+
 # --- Cargar GEOJSON de Departamentos (Salta/Jujuy) ---
 @st.cache_data(show_spinner=False)
 def cargar_geojson_deptos(path_geojson: str):
@@ -152,6 +163,7 @@ def cargar_geojson_deptos(path_geojson: str):
     except Exception as e:
         st.error(f"Error al leer el geojson de departamentos: {e}")
     return []
+
 
 def asignar_depto_por_punto(df_pts: pd.DataFrame, deptos_features: list) -> pd.DataFrame:
     """
@@ -194,6 +206,7 @@ def asignar_depto_por_punto(df_pts: pd.DataFrame, deptos_features: list) -> pd.D
     df['Provincia_final'] = df['Provincia_api'].fillna(df['Provincia_geo']).fillna('Sin asignar')
     return df
 
+
 # --- CONFIG MAPA ---
 mapa_config = {
     "cisterna_de_consumo": {"titulo": "Cisterna de consumo", "color": "blue", "hex": "#0067A5"},
@@ -208,15 +221,210 @@ mapa_config = {
 }
 colores_tecnologias = {v["titulo"]: v["hex"] for v in mapa_config.values()}
 
+
 def buscar_v(registro, keywords):
     for col in registro.index:
         if any(k.lower() in col.lower() for k in keywords):
             val = registro[col]
-            if pd.isnull(val) or str(val).lower() == 'none': return "No reg."
-            if isinstance(val, (pd.Timestamp, datetime)): return val.strftime('%d/%m/%Y')
+            if pd.isnull(val) or str(val).lower() == 'none':
+                return "No reg."
+            if isinstance(val, (pd.Timestamp, datetime)):
+                return val.strftime('%d/%m/%Y')
             return str(val)
     return "No reg."
 
+
+# ============ ENCABEZADO PDF: LOGO ARRIBA DERECHA + TÍTULO/FECHA AL LADO ============
+def _header_canvas(c: canvas.Canvas, doc):
+    page_width, page_height = landscape(A4)
+    
+    # ----- Parámetros de Diseño -----
+    # Definimos una línea de base central para alinear verticalmente logo y texto
+    header_baseline_y = page_height - 1.8 * cm 
+    
+    # Coordenada X del centro exacto de la página (para centrar el título con el papel)
+    center_of_page_x = page_width / 2.0
+    
+    left_margin = 1.5 * cm
+    right_margin = 1.5 * cm
+    
+    # 1. *** LOGO (A la Izquierda) ***
+    # Mantenemos el logo en su posición, sin cambios.
+    logo_w = 180
+    logo_h = 140  
+    x_logo = left_margin
+    y_logo = header_baseline_y - (logo_h / 2.0)
+    
+    try:
+        c.drawImage(
+            LOGO_PATH,
+            x=x_logo,
+            y=y_logo,
+            width=logo_w,
+            height=logo_h,
+            preserveAspectRatio=True,
+            mask='auto'
+        )
+    except Exception:
+        pass
+
+    # 2. *** TÍTULO Y FECHA (Centrados RESPECTO A LA PÁGINA TOTAL) ***
+    # Al usar 'center_of_page_x', el texto se mueve hacia la izquierda,
+    # ignorando al logo y centrándose con el papel.
+
+    # -- Título --
+    title_font = "Helvetica-Bold"
+    title_size = 20
+    title_text = "RELEVAMIENTO DE DATOS"
+    
+    c.setFont(title_font, title_size)
+    y_title = header_baseline_y + 0.2 * cm
+    
+    # ¡AQUÍ ESTÁ EL CAMBIO IMPORTANTE!
+    c.drawCentredString(center_of_page_x, y_title, title_text)
+
+    # -- Fecha/Generado (Justo debajo del título y también centrada en la página) --
+    date_font = "Helvetica"
+    date_size = 10
+    date_text = datetime.now().strftime("Generado: %d/%m/%Y %H:%M")
+    
+    c.setFont(date_font, date_size)
+    y_date = y_title - 0.7 * cm
+    
+    # ¡AQUÍ TAMBIÉN!
+    c.drawCentredString(center_of_page_x, y_date, date_text)
+
+    # 3. *** LÍNEA SEPARADORA (El límite de seguridad) ***
+    # La mantenemos igual, de margen a margen.
+    y_line = y_date - 0.6 * cm
+    
+    c.setLineWidth(1.2)
+    c.setStrokeColor(colors.HexColor('#1E3A8A'))
+    c.line(left_margin, y_line, page_width - right_margin, y_line)
+
+
+# ============ CONSTRUCTOR DE PDF (USA EL HEADER + SALTOS DE PÁGINA) ============
+def construir_pdf_xls(tec_por_prov, asis_por_prov, usu_por_prov) -> bytes:
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=1*cm,
+        rightMargin=1*cm,
+        topMargin=PDF_TOP_MARGIN,
+        bottomMargin=1.2*cm
+    )
+    styles = getSampleStyleSheet()
+    elems = []
+
+    # --- Aire inicial ---
+    elems.append(Spacer(1, 0.1*cm))
+
+    # ---- Helper de tabla con estilo ----
+    def tabla_rl(df, titulo):
+        if titulo:
+            elems.append(Paragraph(f"<b>{titulo}</b>", styles['Heading3']))
+
+        data = [["Departamento"] + [str(c) for c in df.columns]]
+        for idx, row in df.iterrows():
+            fila = []
+            for v in row.tolist():
+                try:
+                    fila.append(int(v))
+                except Exception:
+                    if v is None or (isinstance(v, float) and pd.isna(v)):
+                        fila.append(0)
+                    else:
+                        fila.append(v)
+            data.append([str(idx)] + fila)
+
+        t = Table(data, repeatRows=1)
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E3A8A')),
+            ('TEXTCOLOR',  (0,0), (-1,0), colors.white),
+            ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE',   (0,0), (-1,0), 10),
+            ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+            ('GRID',       (0,0), (-1,-1), 0.25, colors.grey),
+            ('FONTSIZE',   (0,1), (-1,-1), 9),
+            ('VALIGN',     (0,0), (-1,-1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING',    (0,0), (-1,-1), 4),
+        ]))
+        elems.extend([t, Spacer(1, 0.45*cm)])
+
+    # =======================
+    # Sección 1: Tecnologías
+    # =======================
+    elems.append(Paragraph("Informe generado a partir de la base de datos acualizada", styles['Heading1']))
+    elems.append(Spacer(1, 0.25*cm))
+
+    elems.append(Paragraph("<b>1.- Tecnologías</b>", styles['Heading2']))
+    for prov in ["Salta", "Jujuy"]:
+        elems.append(Paragraph(f"<b>Provincia: {prov}</b>", styles['Heading4']))
+        dfp = tec_por_prov.get(prov, pd.DataFrame())
+        if not dfp.empty:
+            tabla_rl(dfp, "")
+        else:
+            elems.append(Paragraph("Sin registros", styles['Normal']))
+            elems.append(Spacer(1, 0.2*cm))
+
+    # <<< SALTO DE PÁGINA ANTES DE LA SECCIÓN 2 >>>
+    elems.append(PageBreak())
+
+    # ==============================
+    # Sección 2: Asistencia Técnica
+    # ==============================
+    elems.append(Paragraph("<b>2.- Asistencia Técnica</b>", styles['Heading2']))
+    for prov in ["Salta", "Jujuy"]:
+        elems.append(Paragraph(f"<b>Provincia: {prov}</b>", styles['Heading4']))
+        dfp = asis_por_prov.get(prov, pd.DataFrame())
+        if not dfp.empty:
+            tabla_rl(dfp, "")
+        else:
+            elems.append(Paragraph("Sin registros", styles['Normal']))
+            elems.append(Spacer(1, 0.2*cm))
+
+    # <<< SALTO DE PÁGINA ANTES DE LA SECCIÓN 3 >>>
+    elems.append(PageBreak())
+
+    # =================
+    # Sección 3: Usuarios
+    # =================
+    elems.append(Paragraph("<b>3.- Usuarios</b>", styles['Heading2']))
+    for prov in ["Salta", "Jujuy"]:
+        elems.append(Paragraph(f"<b>Provincia: {prov}</b>", styles['Heading4']))
+        dfp = usu_por_prov.get(prov, pd.DataFrame())
+        if not dfp.empty:
+            tabla_rl(dfp, "")
+        else:
+            elems.append(Paragraph("Sin registros", styles['Normal']))
+            elems.append(Spacer(1, 0.2*cm))
+
+    # --- Build con encabezado en todas las páginas ---
+    doc.build(
+        elems,
+        onFirstPage=_header_canvas,
+        onLaterPages=_header_canvas
+    )
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
+
+
+# ============ CONSTRUCTOR DE XLSX (SIN CAMBIOS ESTRUCTURALES) ============
+def construir_xlsx(tec_por_prov, asis_por_prov, usu_por_prov) -> bytes:
+    xls_buffer = BytesIO()
+    with pd.ExcelWriter(xls_buffer, engine="openpyxl") as writer:
+        for prov in ["Salta", "Jujuy"]:
+            tec_por_prov.get(prov, pd.DataFrame()).to_excel(writer, sheet_name=f"TEC_{prov}")
+            asis_por_prov.get(prov, pd.DataFrame()).to_excel(writer, sheet_name=f"ASIS_{prov}")
+            usu_por_prov.get(prov, pd.DataFrame()).to_excel(writer, sheet_name=f"USU_{prov}")
+    xls_buffer.seek(0)
+    return xls_buffer.getvalue()
+
+
+# ======================= APP =======================
 st.markdown('<div class="titulo-responsive">📍 Monitoreo Mesa de Agua</div>', unsafe_allow_html=True)
 
 # Cargar datos
@@ -229,8 +437,10 @@ deptos_features = cargar_geojson_deptos("deptos.geojson") if SHAPELY_OK else []
 if not df_raw.empty:
     with st.expander("🔍 Opciones de Filtro", expanded=False):
         c1, c2, c3, c4 = st.columns(4)
-        with c1: fecha_desde = st.date_input("Inicio", value=df_raw['fecha_limpia'].min().date())
-        with c2: fecha_hasta = st.date_input("Fin", value=df_raw['fecha_limpia'].max().date())
+        with c1:
+            fecha_desde = st.date_input("Inicio", value=df_raw['fecha_limpia'].min().date())
+        with c2:
+            fecha_hasta = st.date_input("Fin", value=df_raw['fecha_limpia'].max().date())
         with c3:
             listado_tec = ["Todas"] + [v["titulo"] for v in mapa_config.values()]
             tec_filtro = st.selectbox("Tecnología", listado_tec)
@@ -281,7 +491,8 @@ if not df_filtrado.empty:
         titulo_display = conf["titulo"]
         if tec_key.lower() == "otros":
             detalle = buscar_v(reg, ["Detalle_otras_fuentes_de_agua"])
-            if detalle != "No reg.": titulo_display = detalle
+            if detalle != "No reg.":
+                titulo_display = detalle
         f_str = reg['fecha_limpia'].strftime('%d/%m/%Y')
         pop_html = (
             f"<div style='font-family:Arial; min-width:180px;'>"
@@ -305,7 +516,8 @@ if not df_filtrado.empty:
             if not seleccion_df.empty:
                 seleccion = seleccion_df.iloc[0]
                 foto_url = next((seleccion[c] for c in df_filtrado.columns if 'URL' in c.upper() and isinstance(seleccion[c], str) and seleccion[c].startswith('http')), None)
-                if foto_url: st.image(foto_url, use_container_width=True)
+                if foto_url:
+                    st.image(foto_url, use_container_width=True)
                 st.markdown(f"### {mapa_config.get(str(seleccion.get('tecnolog')), mapa_config['otros'])['titulo']}")
                 datos_ficha = {
                     "📅 Fecha": ["fecha_limpia", None],
@@ -322,7 +534,8 @@ if not df_filtrado.empty:
                 }
                 for etiqueta, (kws, tipo_mapa) in datos_ficha.items():
                     valor = buscar_v(seleccion, [kws])
-                    if tipo_mapa: valor = mapear_nombres_claros(valor, tipo_mapa)
+                    if tipo_mapa:
+                        valor = mapear_nombres_claros(valor, tipo_mapa)
                     st.write(f"**{etiqueta}:** {valor}")
             else:
                 st.warning("No se encontraron datos para este punto.")
@@ -339,15 +552,17 @@ if not df_filtrado.empty:
         "💧 Calidad y Asistencia",
         "👥 Usuarios",
         "⚠️ Problemas (No Uso)",
-        "📍 Resumen territorial"
+        "📍 Informe"
     ])
 
     # ---- Tab 1: Tecnologías y Estado
     with t1:
         c_pie1, c_pie2 = st.columns(2)
         with c_pie1:
-            fig1 = px.pie(df_filtrado, names='tecnologia_txt', title="Porcentaje de Tecnologías",
-                          color='tecnologia_txt', color_discrete_map=colores_tecnologias, hole=0.3)
+            fig1 = px.pie(
+                df_filtrado, names='tecnologia_txt', title="Porcentaje de Tecnologías",
+                color='tecnologia_txt', color_discrete_map=colores_tecnologias, hole=0.3
+            )
             fig1.update_traces(hovertemplate="%{label}<br>Porcentaje: %{percent}")
             st.plotly_chart(fig1, use_container_width=True)
         with c_pie2:
@@ -364,16 +579,20 @@ if not df_filtrado.empty:
             st.plotly_chart(fig3, use_container_width=True)
         with c_bar1:
             asistencia_data = df_filtrado['asistencia_txt'].value_counts().reset_index()
-            fig4 = px.bar(asistencia_data, x='asistencia_txt', y='count', title="Asistencia Técnica",
-                          labels={'count':'Obras', 'asistencia_txt':'Origen'})
+            fig4 = px.bar(
+                asistencia_data, x='asistencia_txt', y='count', title="Asistencia Técnica",
+                labels={'count': 'Obras', 'asistencia_txt': 'Origen'}
+            )
             fig4.update_traces(hovertemplate="Tipo: %{x}<br>Total: %{y}")
             st.plotly_chart(fig4, use_container_width=True)
 
     # ---- Tab 3: Usuarios
     with t3:
         usuario_data = df_filtrado['usuario_txt'].value_counts().reset_index()
-        fig5 = px.bar(usuario_data, x='count', y='usuario_txt', orientation='h', title="Tipos de Usuarios",
-                      labels={'count':'Registros', 'usuario_txt':'Categoría'})
+        fig5 = px.bar(
+            usuario_data, x='count', y='usuario_txt', orientation='h', title="Tipos de Usuarios",
+            labels={'count': 'Registros', 'usuario_txt': 'Categoría'}
+        )
         fig5.update_traces(hovertemplate="Usuario: %{y}<br>Cantidad: %{x}")
         st.plotly_chart(fig5, use_container_width=True)
 
@@ -383,11 +602,13 @@ if not df_filtrado.empty:
         if not df_no_uso.empty:
             df_no_uso['prob_txt'] = df_no_uso['Problemas_asociados_al_No_uso'].apply(lambda x: mapear_nombres_claros(x, 'problemas'))
             prob_data = df_no_uso['prob_txt'].value_counts().reset_index()
-            fig6 = px.bar(prob_data, x='count', y='prob_txt', orientation='h',
-                          title="Causas del No Uso (Obras Inactivas)",
-                          color='count', color_continuous_scale='Reds',
-                          labels={'count':'Frecuencia', 'prob_txt':'Motivo detectado'})
-            fig6.update_layout(yaxis={'categoryorder':'total ascending'})
+            fig6 = px.bar(
+                prob_data, x='count', y='prob_txt', orientation='h',
+                title="Causas del No Uso (Obras Inactivas)",
+                color='count', color_continuous_scale='Reds',
+                labels={'count': 'Frecuencia', 'prob_txt': 'Motivo detectado'}
+            )
+            fig6.update_layout(yaxis={'categoryorder': 'total ascending'})
             fig6.update_traces(hovertemplate="Problema: %{y}<br>Obras afectadas: %{x}")
             st.plotly_chart(fig6, use_container_width=True)
         else:
@@ -453,16 +674,6 @@ if not df_filtrado.empty:
             out[prov] = g
         return out
 
-    def _render_bloque(st_container, titulo, dict_tablas):
-        st_container.markdown(f"**{titulo}**")
-        for prov in ["Salta", "Jujuy"]:
-            st_container.markdown(f"**Provincia: {prov}**")
-            if dict_tablas[prov].empty:
-                st_container.info("Sin registros para los filtros aplicados.")
-            else:
-                st_container.dataframe(dict_tablas[prov], use_container_width=True)
-        st_container.markdown("---")
-
     with t5:
         st.subheader("Resumen Territorial")
 
@@ -480,7 +691,14 @@ if not df_filtrado.empty:
             columna_categoria="tecnologia_txt",
             orden_columnas=_orden_tecnologias()
         )
-        _render_bloque(st, "1.- Tecnologías", tec_por_prov)
+        st.markdown("**1.- Tecnologías**")
+        for prov in ["Salta", "Jujuy"]:
+            st.markdown(f"**Provincia: {prov}**")
+            if tec_por_prov[prov].empty:
+                st.info("Sin registros para los filtros aplicados.")
+            else:
+                st.dataframe(tec_por_prov[prov], use_container_width=True)
+        st.markdown("---")
 
         # --- 2) Asistencia Técnica ---
         asis_por_prov = _matriz_por_provincia(
@@ -488,7 +706,14 @@ if not df_filtrado.empty:
             columna_categoria="asistencia_txt",
             orden_columnas=_orden_asistencia()
         )
-        _render_bloque(st, "2.- Asistencia Técnica", asis_por_prov)
+        st.markdown("**2.- Asistencia Técnica**")
+        for prov in ["Salta", "Jujuy"]:
+            st.markdown(f"**Provincia: {prov}**")
+            if asis_por_prov[prov].empty:
+                st.info("Sin registros para los filtros aplicados.")
+            else:
+                st.dataframe(asis_por_prov[prov], use_container_width=True)
+        st.markdown("---")
 
         # --- 3) Usuarios ---
         usu_por_prov = _matriz_por_provincia(
@@ -496,7 +721,14 @@ if not df_filtrado.empty:
             columna_categoria="usuario_xls",
             orden_columnas=_orden_usuarios() + ["Otros"]
         )
-        _render_bloque(st, "3.- Usuarios", usu_por_prov)
+        st.markdown("**3.- Usuarios**")
+        for prov in ["Salta", "Jujuy"]:
+            st.markdown(f"**Provincia: {prov}**")
+            if usu_por_prov[prov].empty:
+                st.info("Sin registros para los filtros aplicados.")
+            else:
+                st.dataframe(usu_por_prov[prov], use_container_width=True)
+        st.markdown("---")
 
         # --- Indicador de consistencia de totales (auditoría rápida) ---
         total_reg = len(df_geo)
@@ -504,96 +736,9 @@ if not df_filtrado.empty:
         for prov in ["Salta", "Jujuy"]:
             if not tec_por_prov[prov].empty and "Totales" in tec_por_prov[prov].index:
                 total_tec += tec_por_prov[prov].loc["Totales"].sum()
-        st.caption(f"Total de registros (filtros aplicados): **{total_reg}** | Suma por tecnologías: **{int(total_tec)}** (debe coincidir)")
+        st.caption(f"Total de registros (filtros aplicados): **{total_reg}** ")
 
-        # ============ Descargas (PDF / XLSX) directas, sin paso intermedio ============
-
-        # 1) Constructor de PDF (mismo layout que el tab)
-        def construir_pdf_xls(tec_por_prov, asis_por_prov, usu_por_prov) -> bytes:
-            buffer = BytesIO()
-            doc = SimpleDocTemplate(
-                buffer, pagesize=landscape(A4),
-                leftMargin=1*cm, rightMargin=1*cm, topMargin=1*cm, bottomMargin=1*cm
-            )
-            styles = getSampleStyleSheet()
-            elems = []
-
-            def tabla_rl(df, titulo):
-                if titulo:
-                    elems.append(Paragraph(f"<b>{titulo}</b>", styles['Heading3']))
-                data = [["Departamento"] + [str(c) for c in df.columns]]
-                for idx, row in df.iterrows():
-                    data.append([str(idx)] + [int(v) for v in row.tolist()])
-                t = Table(data, repeatRows=1)
-                t.setStyle(TableStyle([
-                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E3A8A')),
-                    ('TEXTCOLOR',(0,0),(-1,0), colors.white),
-                    ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
-                    ('FONTSIZE',(0,0),(-1,0),9),
-                    ('ALIGN',(0,0),(-1,-1),'CENTER'),
-                    ('GRID',(0,0),(-1,-1),0.25, colors.grey),
-                    ('FONTSIZE',(0,1),(-1,-1),8),
-                    ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
-                ]))
-                elems.extend([t, Spacer(1, 0.35*cm)])
-
-            # Cabecera
-            elems += [
-                Paragraph("<b>INFORME - Mesa de Agua</b>", styles['Title']),
-                Spacer(1, 0.2*cm),
-                Paragraph(f"Fecha de generación: {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles['Normal']),
-                Spacer(1, 0.4*cm),
-            ]
-
-            # Sección 1
-            elems.append(Paragraph("<b>1.- Tecnologías</b>", styles['Heading2']))
-            for prov in ["Salta", "Jujuy"]:
-                elems.append(Paragraph(f"<b>Provincia: {prov}</b>", styles['Heading4']))
-                dfp = tec_por_prov.get(prov, pd.DataFrame())
-                if not dfp.empty:
-                    tabla_rl(dfp, "")
-                else:
-                    elems.append(Paragraph("Sin registros", styles['Normal']))
-                    elems.append(Spacer(1, 0.2*cm))
-
-            # Sección 2
-            elems.append(Paragraph("<b>2.- Asistencia Técnica</b>", styles['Heading2']))
-            for prov in ["Salta", "Jujuy"]:
-                elems.append(Paragraph(f"<b>Provincia: {prov}</b>", styles['Heading4']))
-                dfp = asis_por_prov.get(prov, pd.DataFrame())
-                if not dfp.empty:
-                    tabla_rl(dfp, "")
-                else:
-                    elems.append(Paragraph("Sin registros", styles['Normal']))
-                    elems.append(Spacer(1, 0.2*cm))
-
-            # Sección 3
-            elems.append(Paragraph("<b>3.- Usuarios</b>", styles['Heading2']))
-            for prov in ["Salta", "Jujuy"]:
-                elems.append(Paragraph(f"<b>Provincia: {prov}</b>", styles['Heading4']))
-                dfp = usu_por_prov.get(prov, pd.DataFrame())
-                if not dfp.empty:
-                    tabla_rl(dfp, "")
-                else:
-                    elems.append(Paragraph("Sin registros", styles['Normal']))
-                    elems.append(Spacer(1, 0.2*cm))
-
-            doc.build(elems)
-            pdf_bytes = buffer.getvalue()
-            buffer.close()
-            return pdf_bytes
-
-        # 2) Constructor de XLSX (6 hojas: TEC/ASIS/USU por provincia)
-        def construir_xlsx(tec_por_prov, asis_por_prov, usu_por_prov) -> bytes:
-            xls_buffer = BytesIO()
-            with pd.ExcelWriter(xls_buffer, engine="openpyxl") as writer:
-                for prov in ["Salta", "Jujuy"]:
-                    tec_por_prov.get(prov, pd.DataFrame()).to_excel(writer, sheet_name=f"TEC_{prov}")
-                    asis_por_prov.get(prov, pd.DataFrame()).to_excel(writer, sheet_name=f"ASIS_{prov}")
-                    usu_por_prov.get(prov, pd.DataFrame()).to_excel(writer, sheet_name=f"USU_{prov}")
-            xls_buffer.seek(0)
-            return xls_buffer.getvalue()
-
+        # ============ Descargas (PDF / XLSX) ============
         st.markdown("### Descargas")
         col_pdf, col_xls = st.columns(2)
 
