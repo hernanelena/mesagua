@@ -51,10 +51,34 @@ PDF_TOP_MARGIN = 3.2 *cm  # subilo a 5*cm si agrandás más el logo
 st.markdown(
     """
     <style>
+        /* Aprovecha al máximo el ancho de la pantalla */
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+            padding-left: 1rem !important; /* Forzamos un margen mínimo a la izquierda */
+            max-width: 98% !important;
+        }
+        
+        iframe {
+            margin-top: 0px !important;
+        }
+
         .titulo-responsive {
-            text-align: center; color: #1E3A8A; font-weight: bold; padding: 10px;
+            text-align: center; color: #1E3A8A; font-weight: bold; padding: 5px;
             font-size: calc(1.5rem + 1.2vw); line-height: 1.2;
         }
+        
+        /* Elimina espacios fantasmas entre las columnas */
+        [data-testid="stHorizontalBlock"] {
+            gap: 1rem !important;
+        }
+        
+        /* Forzamos a que las columnas de Streamlit no tengan márgenes extraños */
+        [data-testid="column"] {
+            padding-left: 0px !important;
+            padding-right: 0px !important;
+        }
+        
         .ficha-header {
             background-color: #1E3A8A; color: white; padding: 10px; border-radius: 5px;
             text-align: center; margin-bottom: 15px; font-weight: bold;
@@ -425,31 +449,96 @@ def construir_xlsx(tec_por_prov, asis_por_prov, usu_por_prov) -> bytes:
 
 
 # ======================= APP =======================
-st.markdown('<div class="titulo-responsive">📍 Monitoreo Mesa de Agua</div>', unsafe_allow_html=True)
-
+# --- ENCABEZADO DE LA PÁGINA (Título y Subtítulo) ---
+st.markdown(
+    """
+    <div style="text-align: left; padding: 10px; background-color: transparent;">
+        <h1 style="color: #1E3A8A; font-weight: bold; margin-bottom: 5px; font-size: calc(1.6rem + 1.5vw); line-height: 1.1;">
+            🚰 Mesa del Agua
+        </h1>
+        <p style="color: #555555; font-size: calc(1.0rem + 0.4vw); font-weight: 500; margin-top: 0; opacity: 0.9;">
+            Mapeo digital de obras de agua en el Chaco Salteño
+        </p>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
 # Cargar datos
 df_raw = cargar_datos()
 
 # Cargar deptos
 deptos_features = cargar_geojson_deptos("deptos.geojson") if SHAPELY_OK else []
 
-# ====== FILTROS ======
+# ====== BARRA LATERAL IZQUIERDA (Logo Local + Filtros Contraíbles + Info) ======
 if not df_raw.empty:
-    with st.expander("🔍 Opciones de Filtro", expanded=False):
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            fecha_desde = st.date_input("Inicio", value=df_raw['fecha_limpia'].min().date())
-        with c2:
-            fecha_hasta = st.date_input("Fin", value=df_raw['fecha_limpia'].max().date())
-        with c3:
+    with st.sidebar:
+        # 1. LOGO INSTITUCIONAL ÚNICO (Centrado y desde carpeta local)
+        import base64
+        try:
+            with open("logox3.png", "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode()
+            logo_src = f"data:image/png;base64,{encoded_string}"
+        except Exception:
+            logo_src = ""
+
+        if logo_src:
+            logos_html = f"""
+            <div style="text-align: center; margin-top: 15px; margin-bottom: 15px; background-color: transparent;">
+                <img src="{logo_src}" width="180" style="filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.3)); max-width: 90%; height: auto;" title="Mesa del Agua">
+            </div>
+            """
+            st.html(logos_html)
+        
+        st.markdown("---") # Línea divisoria sutil entre el logo y los filtros
+        
+        # 2. FILTROS DE BÚSQUEDA (¡NUEVO: CONTRAÍBLES!)
+        with st.expander("🔍 Filtros de Búsqueda"):
+            fecha_desde = st.date_input("Fecha Inicio", value=df_raw['fecha_limpia'].min().date())
+            fecha_hasta = st.date_input("Fecha Fin", value=df_raw['fecha_limpia'].max().date())
+            
             listado_tec = ["Todas"] + [v["titulo"] for v in mapa_config.values()]
             tec_filtro = st.selectbox("Tecnología", listado_tec)
-        with c4:
+            
             opciones_uso = ["Todos"]
             if 'En_uso' in df_raw.columns:
                 opciones_uso += sorted(df_raw['En_uso'].dropna().unique().tolist())
             uso_filtro = st.selectbox("¿En Uso?", opciones_uso)
 
+        st.markdown("---") # Línea divisoria antes de la versión
+        
+        # 3. VERSIÓN, LICENCIA Y CRÉDITOS (Al fondo de la barra)
+        st.markdown(
+            """
+            <div style="text-align: center; font-size: 11px; color: var(--text-color); opacity: 0.8; line-height: 14px;">
+                <strong>Mesa del Agua para el Chaco Salteño</strong><br>
+                <span style="font-family: monospace;">Versión 1.1.0 (2026)</span><br>
+                <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" style="text-decoration: none; color: #1E3A8A; font-weight: bold;">Licencia CC BY-NC-SA 4.0</a>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        st.markdown(" ") 
+        
+        with st.sidebar.expander("👥 Créditos"):
+            st.markdown(
+                """
+                <div style="font-size: 12px; line-height: 16px;">
+                    <strong>Desarrollado por:</strong><br>
+                    Lic. Hernán Elena / INTA Salta<br><br>
+                    <strong>Mesa del Agua:</strong>
+                    <ul style="margin-top: 4px; padding-left: 15px; font-size: 11px;">
+                        <li>INTA EEA Salta</li>
+                        <li>FUNDAPAZ</li>
+                        <li>Organizaciones de la Mesa del Agua</li>
+                        <li>Gobierno de Salta</li>                        
+                    </ul>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
+
+    # Lógica de la máscara (Mantiene el mismo comportamiento de filtrado original)
     mask = (df_raw['fecha_limpia'].dt.date >= fecha_desde) & (df_raw['fecha_limpia'].dt.date <= fecha_hasta)
     if tec_filtro != "Todas":
         tec_key_buscada = next(k for k, v in mapa_config.items() if v["titulo"] == tec_filtro)
@@ -460,88 +549,245 @@ if not df_raw.empty:
 else:
     df_filtrado = pd.DataFrame()
 
-# ====== MAPA ======
-if not df_filtrado.empty:
-    # Preparar columnas de texto
-    df_filtrado['tecnologia_txt'] = df_filtrado['tecnolog'].apply(lambda x: mapa_config.get(str(x), mapa_config["otros"])["titulo"])
-    df_filtrado['estado_txt'] = df_filtrado.get('Estado_de_la_obra', pd.Series(index=df_filtrado.index)).apply(lambda x: mapear_nombres_claros(x, 'estado'))
-    df_filtrado['calidad_txt'] = df_filtrado.get('Calidad_del_agua', pd.Series(index=df_filtrado.index)).apply(lambda x: mapear_nombres_claros(x, 'calidad'))
-    df_filtrado['asistencia_txt'] = df_filtrado.get('Asistencia_t_cnica_de_la_obra', pd.Series(index=df_filtrado.index)).apply(lambda x: mapear_nombres_claros(x, 'asistencia'))
-    df_filtrado['usuario_txt'] = df_filtrado.get('Usuario', pd.Series(index=df_filtrado.index)).apply(lambda x: mapear_nombres_claros(x, 'usuario'))
 
-    # Asignación espacial
-    df_geo = asignar_depto_por_punto(df_filtrado, deptos_features)
+# === NUEVO: DEFINIR EL FRAGMENTO PARA EL MAPA Y LA FICHA ===
+@st.fragment
+def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
+    if not df_filtrado.empty:
+        # Preparar columnas de texto
+        df_filtrado['tecnologia_txt'] = df_filtrado['tecnolog'].apply(lambda x: mapa_config.get(str(x), mapa_config["otros"])["titulo"])
+        df_filtrado['estado_txt'] = df_filtrado.get('Estado_de_la_obra', pd.Series(index=df_filtrado.index)).apply(lambda x: mapear_nombres_claros(x, 'estado'))
+        df_filtrado['calidad_txt'] = df_filtrado.get('Calidad_del_agua', pd.Series(index=df_filtrado.index)).apply(lambda x: mapear_nombres_claros(x, 'calidad'))
+        df_filtrado['asistencia_txt'] = df_filtrado.get('Asistencia_t_cnica_de_la_obra', pd.Series(index=df_filtrado.index)).apply(lambda x: mapear_nombres_claros(x, 'asistencia'))
+        df_filtrado['usuario_txt'] = df_filtrado.get('Usuario', pd.Series(index=df_filtrado.index)).apply(lambda x: mapear_nombres_claros(x, 'usuario'))
 
-    # --- MAPA ---
-    m = folium.Map(location=[df_filtrado['lat'].mean(), df_filtrado['lon'].mean()], zoom_start=8, tiles=None)
-    folium.TileLayer(
-        tiles="https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG%3A3857@png/{z}/{x}/{-y}.png",
-        attr='IGN', name='Argenmap (IGN)', overlay=False
-    ).add_to(m)
-    folium.TileLayer(
-        tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
-        attr='Google', name='Google Satélite', overlay=False
-    ).add_to(m)
-    folium.LayerControl(position='topright', collapsed=False).add_to(m)
-    LocateControl(flyTo=True).add_to(m)
+        # Asignación espacial
+        df_geo = asignar_depto_por_punto(df_filtrado, deptos_features)
 
-    for _, reg in df_filtrado.iterrows():
-        tec_key = str(reg.get('tecnolog', 'otros'))
-        conf = mapa_config.get(tec_key, mapa_config["otros"])
-        titulo_display = conf["titulo"]
-        if tec_key.lower() == "otros":
-            detalle = buscar_v(reg, ["Detalle_otras_fuentes_de_agua"])
-            if detalle != "No reg.":
-                titulo_display = detalle
-        f_str = reg['fecha_limpia'].strftime('%d/%m/%Y')
-        pop_html = (
-            f"<div style='font-family:Arial; min-width:180px;'>"
-            f"<b style='color:{conf['hex']}'>{titulo_display.upper()}</b><br>"
-            f"<b>Fecha:</b> {f_str}<br><b>En Uso:</b> {reg.get('En_uso','-')}</div>"
-        )
-        folium.Marker(
-            [reg['lat'], reg['lon']],
-            popup=folium.Popup(pop_html, max_width=250),
-            icon=folium.Icon(color=conf["color"], icon='tint')
+        # --- MAPA ---
+        m = folium.Map(location=[df_filtrado['lat'].mean(), df_filtrado['lon'].mean()], zoom_start=8, tiles=None)
+        folium.TileLayer(
+            tiles="https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG%3A3857@png/{z}/{x}/{-y}.png",
+            attr='IGN', name='Argenmap (IGN)', overlay=False
         ).add_to(m)
+        folium.TileLayer(
+            tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+            attr='Google', name='Google Satélite', overlay=False
+        ).add_to(m)
+        folium.LayerControl(position='topright', collapsed=False).add_to(m)
+        LocateControl(flyTo=True).add_to(m)
 
-    salida_mapa = st_folium(m, width="100%", height=600, key="mapa_agua", returned_objects=["last_object_clicked"])
+        for _, reg in df_filtrado.iterrows():
+            tec_key = str(reg.get('tecnolog', 'otros')).strip()
+            conf = mapa_config.get(tec_key, mapa_config["otros"])
+            titulo_display = conf["titulo"]
+            
+            # --- IGUALAMOS LA LÓGICA: REEMPLAZO DIRECTO SI ES "OTROS" ---
+            if tec_key.lower() == "otros" or titulo_display.lower() == "otros":
+                detalle = buscar_v(reg, ["Detalle_otras_fuentes_de_agua"])
+                if detalle != "No reg." and detalle.strip() != "":
+                    titulo_display = detalle.strip()
+            
+            f_str = reg['fecha_limpia'].strftime('%d/%m/%Y')
+            val_en_uso = str(reg.get('En_uso', 'No reg.'))
+            
+            # Construimos el Popup plano, limpio, sin imágenes molestas que se rompan
+            pop_html = f"""
+            <div style='font-family:Arial; min-width:180px;'>
+                <b style='color:{conf['hex']}; font-size:13px;'>{titulo_display.upper()}</b><br>
+                <span style='margin-top:4px; display:block;'><b>Fecha:</b> {f_str}</span>
+                <b>En Uso:</b> {val_en_uso}
+            </div>
+            """
+            
+            folium.Marker(
+                [reg['lat'], reg['lon']],
+                popup=folium.Popup(pop_html, max_width=250),
+                icon=folium.Icon(color=conf["color"], icon='tint')
+            ).add_to(m)
 
-    with st.sidebar:
-        st.markdown('<div class="ficha-header">DATOS DEL RELEVAMIENTO</div>', unsafe_allow_html=True)
-        punto_click = salida_mapa.get("last_object_clicked")
-        if punto_click:
-            lat, lon = punto_click['lat'], punto_click['lng']
-            seleccion_df = df_filtrado[(abs(df_filtrado['lat'] - lat) < 0.001) & (abs(df_filtrado['lon'] - lon) < 0.001)]
-            if not seleccion_df.empty:
-                seleccion = seleccion_df.iloc[0]
-                foto_url = next((seleccion[c] for c in df_filtrado.columns if 'URL' in c.upper() and isinstance(seleccion[c], str) and seleccion[c].startswith('http')), None)
-                if foto_url:
-                    st.image(foto_url, use_container_width=True)
-                st.markdown(f"### {mapa_config.get(str(seleccion.get('tecnolog')), mapa_config['otros'])['titulo']}")
-                datos_ficha = {
-                    "📅 Fecha": ["fecha_limpia", None],
-                    "🏗️ Estado de Obra": ["Estado_de_la_obra", "estado"],
-                    "💧 Otras Fuentes": ["Detalle_otras_fuentes_de_agua", None],
-                    "🛠️ Asistencia Técnica": ["Asistencia_t_cnica_de_la_obra", "asistencia"],
-                    "✅ En Uso": ["En_uso", None],
-                    "⚠️ Problemas": ["Problemas_asociados_al_No_uso", "problemas"],
-                    "🧔 Usuario": ["Usuario", "usuario"],
-                    "👨‍👩‍👧‍👦 Familias": ["Cantidad_de_familias_usuarias", None],
-                    "🧪 Calidad Agua": ["Calidad_del_agua", "calidad"],
-                    "🧼 Tratamiento": ["Realiza_treatment_del_agua_a", None],
-                    "❓ Cuál tratamiento": ["Cual", None]
-                }
-                for etiqueta, (kws, tipo_mapa) in datos_ficha.items():
-                    valor = buscar_v(seleccion, [kws])
-                    if tipo_mapa:
-                        valor = mapear_nombres_claros(valor, tipo_mapa)
-                    st.write(f"**{etiqueta}:** {valor}")
+        # -------------------------------------------------------------
+        # -------------------------------------------------------------
+        # ¡NUEVO! LEYENDA COLAPSABLE RESISTENTE AL MODO OSCURO
+        # -------------------------------------------------------------
+        leyenda_html = """
+        <div style="
+            position: fixed; 
+            bottom: 50px; right: 20px; width: auto; max-width: 220px; height: auto; 
+            background-color: #ffffff !important; 
+            z-index: 9999; 
+            font-size: 12px !important;
+            font-family: 'Source Sans Pro', sans-serif !important;
+            padding: 10px; 
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+            border: 1px solid rgba(0,0,0,0.15);
+        ">
+        <details style="cursor: pointer; background: transparent !important;">
+            <summary style="
+                font-size: 13px !important; 
+                color: #1E3A8A !important; 
+                font-weight: bold !important;
+                outline: none;
+                user-select: none;
+                padding-right: 15px;
+            ">
+                ⚙️ Leyenda
+            </summary>
+            <div style="margin-top: 10px; background: transparent !important;">
+        """
+        
+        # Iteramos sobre la configuración para armar los ítems dentro del desplegable
+        for item in mapa_config.values():
+            leyenda_html += f"""
+                <div style="display: flex; align-items: center; margin-bottom: 5px; background: transparent !important;">
+                    <i style="
+                        background: {item['hex']} !important; 
+                        width: 14px; height: 14px; 
+                        float: left; margin-right: 8px; 
+                        border-radius: 50%;
+                        border: 1px solid #ffffff !important;
+                        flex-shrink: 0;
+                    "></i>
+                    <span style="
+                        color: #111111 !important; 
+                        font-weight: 500 !important;
+                        font-size: 12px !important;
+                        white-space: nowrap;
+                    ">{item['titulo']}</span>
+                </div>
+            """
+            
+        leyenda_html += """
+            </div>
+        </details>
+        </div>
+        """
+        
+        # Añadimos el HTML como un elemento flotante en el mapa
+        m.get_root().html.add_child(folium.Element(leyenda_html))
+        # -------------------------------------------------------------
+        # -------------------------------------------------------------
+
+        # Dividimos la pantalla en 2 columnas dentro del fragmento (75% mapa, 25% ficha técnica)
+        col_mapa, col_ficha = st.columns([3, 1])
+
+        with col_mapa:
+            salida_mapa = st_folium(m, width="100%", height=600, key="mapa_agua", returned_objects=["last_object_clicked"])
+
+        with col_ficha:
+            st.markdown('<div class="ficha-header">DATOS DEL RELEVAMIENTO</div>', unsafe_allow_html=True)
+            punto_click = salida_mapa.get("last_object_clicked")
+            
+            if punto_click:
+                lat, lon = punto_click['lat'], punto_click['lng']
+                
+                # TOLERANCIA ULTRA ESTRICTA: Reducida a ~1 metro (0.00001) para que no se mezclen puntos vecinos
+                seleccion_df = df_filtrado[(abs(df_filtrado['lat'] - lat) < 0.00001) & (abs(df_filtrado['lon'] - lon) < 0.00001)]
+                
+                # Si por redondeo estricto fallara, usamos una tolerancia intermedia limpia
+                if seleccion_df.empty:
+                    seleccion_df = df_filtrado[(abs(df_filtrado['lat'] - lat) < 0.0001) & (abs(df_filtrado['lon'] - lon) < 0.0001)]
+                
+                if not seleccion_df.empty:
+                    seleccion = seleccion_df.iloc[0]
+                    
+                    # --- DESCARGA DIRECTA REPLICANDO RUTA DE ADMINISTRADOR (INTA API v2) ---
+                    registro_id = seleccion.get('_id') if pd.notna(seleccion.get('_id')) else seleccion.get('id')
+                    
+                    # Extraemos el ID del adjunto que Kobo guardó en los metadatos de la fila
+                    adjuntos = seleccion.get('_attachments', [])
+                    if isinstance(adjuntos, str) and adjuntos.strip() != "":
+                        try:
+                            adjuntos = json.loads(adjuntos)
+                        except:
+                            adjuntos = []
+                    
+                    id_adjunto = None
+                    if isinstance(adjuntos, list) and len(adjuntos) > 0:
+                        id_adjunto = adjuntos[0].get('id')
+                    
+                    # Intentamos construir la ruta idéntica a la que usás en tu navegador corporativo
+                    if pd.notna(registro_id) and id_adjunto:
+                        url_final = f"https://territorios.inta.gob.ar/api/v2/assets/{FORM_ID}/data/{int(registro_id)}/attachments/{id_adjunto}/"
+                        
+                        try:
+                            headers_api = {"Authorization": f"Token {TOKEN}"} if 'TOKEN' in locals() or 'TOKEN' in globals() else {}
+                            res_foto = requests.get(url_final, headers=headers_api, timeout=15)
+                            
+                            if res_foto.status_code == 200:
+                                contenido_tipo = res_foto.headers.get('Content-Type', '')
+                                if 'json' in contenido_tipo.lower():
+                                    meta_adjunto = res_foto.json()
+                                    url_descarga_directa = meta_adjunto.get('download_url') or meta_adjunto.get('file_url')
+                                    if url_descarga_directa:
+                                        res_foto = requests.get(url_descarga_directa, headers=headers_api, timeout=15)
+                                
+                                if res_foto.status_code == 200:
+                                    st.image(res_foto.content, caption="Fotografía de la obra", use_container_width=True)
+                                else:
+                                    st.error(f"Error al bajar binario del adjunto (Código: {res_foto.status_code})")
+                            else:
+                                url_alternativa = seleccion.get('foto_URL')
+                                if pd.notna(url_alternativa) and str(url_alternativa).strip().startswith('http'):
+                                    res_alt = requests.get(str(url_alternativa).strip(), headers=headers_api, timeout=15)
+                                    if res_alt.status_code == 200:
+                                        st.image(res_alt.content, caption="Fotografía de la obra", use_container_width=True)
+                                    else:
+                                        st.error(f"Error en ruta de administrador (Código: {res_foto.status_code})")
+                        except Exception as e:
+                            st.error(f"Error de conexión con el repositorio de fotos: {e}")
+                    else:
+                        st.warning("Este registro no cuenta con los identificadores necesarios (ID de fila o ID de foto).")
+                    
+                    # --- TÍTULO DINÁMICO REPLAZANDO "OTROS" POR EL DETALLE ---
+                    tecnologia_codigo = str(seleccion.get('tecnolog', 'otros')).strip()
+                    config_tec = mapa_config.get(tecnologia_codigo, mapa_config['otros'])
+                    titulo_ficha = config_tec['titulo']
+                    
+                    # Si pertenece a "Otros", el título se convierte 100% en el detalle guardado
+                    if tecnologia_codigo.lower() == 'otros' or titulo_ficha.lower() == 'otros':
+                        detalle_otros = seleccion.get('Detalle_otras_fuentes_de_agua')
+                        if pd.notna(detalle_otros) and str(detalle_otros).strip() != "":
+                            titulo_ficha = str(detalle_otros).strip()
+                    
+                    st.markdown(f"### {titulo_ficha}")
+                    
+                    
+                    datos_ficha = {
+                        "📅 Fecha": ["fecha_limpia", None],
+                        "🏗️ Estado de Obra": ["Estado_de_la_obra", "estado"],
+                        "💧 Otras Fuentes": ["Detalle_otras_fuentes_de_agua", None],
+                        "🛠️ Asistencia Técnica": ["Asistencia_t_cnica_de_la_obra", "asistencia"],
+                        "✅ En Uso": ["En_uso", None],
+                        "⚠️ Problemas": ["Problemas_asociados_al_No_uso", "problemas"],
+                        "🧔 Usuario": ["Usuario", "usuario"],
+                        "👨‍👩‍👧‍👦 Familias": ["Cantidad_de_familias_usuarias", None],
+                        "🧪 Calidad Agua": ["Calidad_del_agua", "calidad"],
+                        "🧼 Tratamiento": ["Realiza_treatment_del_agua_a", None],
+                        "❓ Cuál tratamiento": ["Cual", None]
+                    }
+                    for etiqueta, (kws, tipo_mapa) in datos_ficha.items():
+                        valor = buscar_v(seleccion, [kws])
+                        if tipo_mapa:
+                            valor = mapear_nombres_claros(valor, tipo_mapa)
+                        st.write(f"**{etiqueta}:** {valor}")
+                else:
+                    st.warning("No se encontraron datos para este punto.")
             else:
-                st.warning("No se encontraron datos para este punto.")
-        else:
-            st.info("💡 Haz clic en un marcador para ver la ficha técnica.")
+                st.info("💡 Haz clic en un marcador para ver la ficha técnica.")
+        
+        return df_geo
+    return None
 
+
+
+# Ejecutamos el fragmento (si cambia el filtro de arriba, se vuelve a ejecutar entero)
+df_geo = renderizar_mapa_y_ficha(df_filtrado, deptos_features)
+
+# ====== EL RESTO DEL DASHBOARD SIGUE IGUAL ABAJO ======
+if not df_filtrado.empty and df_geo is not None:
+    # Coloca aquí todo tu bloque actual de: st.markdown("---") hasta las pestañas t1, t2, t3, t4, t5...
     # ====== DASHBOARD DE ESTADÍSTICAS ======
     st.markdown("---")
     st.markdown("### 📊 Tablero de Resumen")
@@ -783,3 +1029,4 @@ Para más información, podés contactarnos en: elena.hernan@inta.gob.ar
 
 else:
     st.warning("No hay datos para los filtros seleccionados.")
+
