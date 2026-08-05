@@ -511,7 +511,7 @@ if not df_raw.empty:
             """
             <div style="text-align: center; font-size: 11px; color: var(--text-color); opacity: 0.8; line-height: 14px;">
                 <strong>Mesa del Agua para el Chaco Salteño</strong><br>
-                <span style="font-family: monospace;">Versión 1.1.0 (2026)</span><br>
+                <span style="font-family: monospace;">Versión 1.1.1 (2026)</span><br>
                 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" style="text-decoration: none; color: #1E3A8A; font-weight: bold;">Licencia CC BY-NC-SA 4.0</a>
             </div>
             """, 
@@ -521,22 +521,22 @@ if not df_raw.empty:
         st.markdown(" ") 
         
         with st.sidebar.expander("👥 Créditos"):
-            st.markdown(
-                """
-                <div style="font-size: 12px; line-height: 16px;">
-                    <strong>Desarrollado por:</strong><br>
-                    Lic. Hernán Elena / INTA Salta<br><br>
-                    <strong>Mesa del Agua:</strong>
-                    <ul style="margin-top: 4px; padding-left: 15px; font-size: 11px;">
-                        <li>INTA EEA Salta</li>
-                        <li>FUNDAPAZ</li>
-                        <li>Organizaciones de la Mesa del Agua</li>
-                        <li>Gobierno de Salta</li>                        
-                    </ul>
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
+    st.markdown(
+        """
+        <div style="font-size: 12px; line-height: 1.4;">
+            <strong>Desarrollado por:</strong><br>
+            Lic. Hernán Elena / INTA Salta<br><br>
+            <strong>Mesa del Agua:</strong>
+            <ul style="margin: 4px 0 0 0; padding-left: 18px; font-size: 11px; line-height: 1.3;">
+                <li style="font-size: 11px; margin-bottom: 2px;">INTA C.R. Salta - Jujuy</li>
+                <li style="font-size: 11px; margin-bottom: 2px;">FUNDAPAZ</li>
+                <li style="font-size: 11px; margin-bottom: 2px;">Organizaciones de la Mesa del Agua</li>
+                <li style="font-size: 11px; margin-bottom: 2px;">Gobierno de Salta</li>
+            </ul>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
 
     # Lógica de la máscara (Mantiene el mismo comportamiento de filtrado original)
     mask = (df_raw['fecha_limpia'].dt.date >= fecha_desde) & (df_raw['fecha_limpia'].dt.date <= fecha_hasta)
