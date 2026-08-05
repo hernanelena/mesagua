@@ -724,7 +724,7 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
                                         res_foto = requests.get(url_descarga_directa, headers=headers_api, timeout=15)
                                 
                                 if res_foto.status_code == 200:
-                                    st.image(res_foto.content, caption="Fotografía de la obra", use_container_width=True)
+                                    st.image(res_foto.content, caption="Fotografía de la obra", use_column_width=True)
                                 else:
                                     st.error(f"Error al bajar binario del adjunto (Código: {res_foto.status_code})")
                             else:
@@ -732,7 +732,7 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
                                 if pd.notna(url_alternativa) and str(url_alternativa).strip().startswith('http'):
                                     res_alt = requests.get(str(url_alternativa).strip(), headers=headers_api, timeout=15)
                                     if res_alt.status_code == 200:
-                                        st.image(res_alt.content, caption="Fotografía de la obra", use_container_width=True)
+                                        st.image(res_alt.content, caption="Fotografía de la obra", use_column_width=True)
                                     else:
                                         st.error(f"Error en ruta de administrador (Código: {res_foto.status_code})")
                         except Exception as e:
