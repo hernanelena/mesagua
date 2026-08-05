@@ -521,22 +521,22 @@ if not df_raw.empty:
         st.markdown(" ") 
         
         with st.sidebar.expander("👥 Créditos"):
-    st.markdown(
-        """
-        <div style="font-size: 12px; line-height: 1.4;">
-            <strong>Desarrollado por:</strong><br>
-            Lic. Hernán Elena / INTA Salta<br><br>
-            <strong>Mesa del Agua:</strong>
-            <ul style="margin: 4px 0 0 0; padding-left: 18px; font-size: 11px; line-height: 1.3;">
-                <li style="font-size: 11px; margin-bottom: 2px;">INTA C.R. Salta - Jujuy</li>
-                <li style="font-size: 11px; margin-bottom: 2px;">FUNDAPAZ</li>
-                <li style="font-size: 11px; margin-bottom: 2px;">Organizaciones de la Mesa del Agua</li>
-                <li style="font-size: 11px; margin-bottom: 2px;">Gobierno de Salta</li>
-            </ul>
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )
+            st.markdown(
+                """
+                <div style="font-size: 12px; line-height: 1.4;">
+                    <strong>Desarrollado por:</strong><br>
+                    Lic. Hernán Elena / INTA Salta<br><br>
+                    <strong>Mesa del Agua:</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 18px; font-size: 11px; line-height: 1.3;">
+                        <li style="font-size: 11px; margin-bottom: 2px;">INTA C.R. Salta - Jujuy</li>
+                        <li style="font-size: 11px; margin-bottom: 2px;">FUNDAPAZ</li>
+                        <li style="font-size: 11px; margin-bottom: 2px;">Organizaciones de la Mesa del Agua</li>
+                        <li style="font-size: 11px; margin-bottom: 2px;">Gobierno de Salta</li>
+                    </ul>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
 
     # Lógica de la máscara (Mantiene el mismo comportamiento de filtrado original)
     mask = (df_raw['fecha_limpia'].dt.date >= fecha_desde) & (df_raw['fecha_limpia'].dt.date <= fecha_hasta)
