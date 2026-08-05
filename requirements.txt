@@ -1,5 +1,5 @@
 streamlit==1.38.0
-starlette>=0.37.2,<0.38.0
+starlette==0.37.2
 streamlit-folium>=0.22.0
 folium
 pandas
