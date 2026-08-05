@@ -525,10 +525,10 @@ if not df_raw.empty:
                 """
                 <div style="font-size: 12px; line-height: 1.4;">
                     <strong>Desarrollado por:</strong><br>
-                    Lic. Hernán Elena / INTA Salta<br><br>
+                    Lic. Hernán Elena / INTA EEA Salta<br><br>
                     <strong>Mesa del Agua:</strong>
                     <ul style="margin: 4px 0 0 0; padding-left: 18px; font-size: 11px; line-height: 1.3;">
-                        <li style="font-size: 11px; margin-bottom: 2px;">INTA C.R. Salta - Jujuy</li>
+                        <li style="font-size: 11px; margin-bottom: 2px;">INTA Centro Regional Salta-Jujuy</li>
                         <li style="font-size: 11px; margin-bottom: 2px;">FUNDAPAZ</li>
                         <li style="font-size: 11px; margin-bottom: 2px;">Organizaciones de la Mesa del Agua</li>
                         <li style="font-size: 11px; margin-bottom: 2px;">Gobierno de Salta</li>
