@@ -9,3 +9,5 @@ plotly
 shapely
 reportlab
 openpyxl
+matplotlib
+contextily
