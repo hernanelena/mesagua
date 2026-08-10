@@ -918,8 +918,8 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
 
         if last_clicked:
             seleccion_df = df_filtrado[
-                (abs(df_filtrado['lat'] - last_clicked['lat']) < 0.0005) & 
-                (abs(df_filtrado['lon'] - last_clicked['lng']) < 0.0005)
+                (abs(df_filtrado['lat'] - last_clicked['lat']) < 0.00005) & 
+                (abs(df_filtrado['lon'] - last_clicked['lng']) < 0.00005)
             ]
             if seleccion_df.empty:
                 st.session_state["last_selected_point"] = None
@@ -933,7 +933,13 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
             centro_inicial = [df_filtrado['lat'].mean(), df_filtrado['lon'].mean()]
             zoom_inicial = 8
 
-        m = folium.Map(location=centro_inicial, zoom_start=zoom_inicial, tiles=None)
+        # 1. Permitir max_zoom alto en la estructura base del mapa
+        m = folium.Map(
+            location=centro_inicial,
+            zoom_start=zoom_inicial,
+            tiles=None,
+            max_zoom=22  # <--- Agrega este parámetro
+        )
 
         sw = [float(df_filtrado['lat'].min()), float(df_filtrado['lon'].min())]
         ne = [float(df_filtrado['lat'].max()), float(df_filtrado['lon'].max())]
@@ -942,8 +948,24 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
         BuscadorArgenmap().add_to(m)
         BotonVistaGeneral(bounds).add_to(m)
 
-        folium.TileLayer("https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG%3A3857@png/{z}/{x}/{-y}.png", attr='IGN', name='Argenmap (IGN)', overlay=False).add_to(m)
-        folium.TileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", attr='Google Satélite', name='Google Satélite', overlay=False).add_to(m)
+        folium.TileLayer(
+            "https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG%3A3857@png/{z}/{x}/{-y}.png",
+            attr='IGN',
+            name='Argenmap (IGN)',
+            overlay=False,
+            max_zoom=22
+        ).add_to(m)
+
+        # 2. Configurar max_native_zoom en Google Satélite para que no se "rompa" la imagen al acercar
+        folium.TileLayer(
+            "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+            attr='Google Satélite',
+            name='Google Satélite',
+            overlay=False,
+            max_zoom=22,           # Permite ampliar con la rueda del mouse / botones hasta z=22
+            max_native_zoom=18     # Amplía digitalmente las imágenes de Google sin darnos pantalla en blanco
+        ).add_to(m)
+        
         folium.LayerControl(position='topright', collapsed=False).add_to(m)
         LocateControl(flyTo=True).add_to(m)
 
@@ -967,7 +989,7 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
             if last_clicked:
                 dist_lat = abs(reg['lat'] - last_clicked['lat'])
                 dist_lon = abs(reg['lon'] - last_clicked['lng'])
-                if dist_lat < 0.0002 and dist_lon < 0.0002:
+                if dist_lat < 0.00005 and dist_lon < 0.00005:
                     es_seleccionado = True
 
             if es_seleccionado:
@@ -1014,7 +1036,7 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
 
             if punto_activo:
                 lat, lon = punto_activo['lat'], punto_activo['lng']
-                seleccion_df = df_filtrado[(abs(df_filtrado['lat'] - lat) < 0.0002) & (abs(df_filtrado['lon'] - lon) < 0.0002)]
+                seleccion_df = df_filtrado[(abs(df_filtrado['lat'] - lat) < 0.00005) & (abs(df_filtrado['lon'] - lon) < 0.00005)]
 
                 if not seleccion_df.empty:
                     seleccion = seleccion_df.iloc[0]
