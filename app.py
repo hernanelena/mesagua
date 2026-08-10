@@ -1075,7 +1075,7 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
                                 foto_bytes_para_pdf = obtener_foto_api(FORM_ID, registro_id, id_adjunto, TOKEN)
                             
                             if foto_bytes_para_pdf:
-                                st.image(foto_bytes_para_pdf, caption="Fotografía de la obra", use_container_width=True)
+                                st.image(foto_bytes_para_pdf, caption="Fotografía de la obra", use_column_width=True)
                             else:
                                 st.warning("No se pudo obtener la imagen.")
                         else:
@@ -1091,7 +1091,7 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
                         ),
                         file_name=f"ficha_relevamiento_{int(seleccion.get('_id', 0))}.pdf",
                         mime="application/pdf",
-                        use_container_width=True
+                        use_column_width=True
                     )
 
                 else:
@@ -1206,29 +1206,29 @@ if not df_raw.empty:
             with c_pie1:
                 fig1 = px.pie(df_filtrado, names='tecnologia_txt', title="Porcentaje de Tecnologías", color='tecnologia_txt', color_discrete_map=colores_tecnologias, hole=0.3)
                 fig1.update_traces(hovertemplate="%{label}<br>Porcentaje: %{percent}")
-                st.plotly_chart(fig1, use_container_width=True)
+                st.plotly_chart(fig1, use_column_width=True)
             with c_pie2:
                 fig2 = px.pie(df_filtrado, names='estado_txt', title="Estado de la Obra")
                 fig2.update_traces(hovertemplate="%{label}<br>Cantidad: %{value}")
-                st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig2, use_column_width=True)
 
         with t2:
             c_pie3, c_bar1 = st.columns(2)
             with c_pie3:
                 fig3 = px.pie(df_filtrado, names='calidad_txt', title="Calidad de Agua")
                 fig3.update_traces(hovertemplate="%{label}<br>Total: %{value}")
-                st.plotly_chart(fig3, use_container_width=True)
+                st.plotly_chart(fig3, use_column_width=True)
             with c_bar1:
                 asistencia_data = df_filtrado['asistencia_txt'].value_counts().reset_index()
                 fig4 = px.bar(asistencia_data, x='asistencia_txt', y='count', title="Asistencia Técnica", labels={'count': 'Obras', 'asistencia_txt': 'Origen'})
                 fig4.update_traces(hovertemplate="Tipo: %{x}<br>Total: %{y}")
-                st.plotly_chart(fig4, use_container_width=True)
+                st.plotly_chart(fig4, use_column_width=True)
 
         with t3:
             usuario_data = df_filtrado['usuario_txt'].value_counts().reset_index()
             fig5 = px.bar(usuario_data, x='count', y='usuario_txt', orientation='h', title="Tipos de Usuarios", labels={'count': 'Registros', 'usuario_txt': 'Categoría'})
             fig5.update_traces(hovertemplate="Usuario: %{y}<br>Cantidad: %{x}")
-            st.plotly_chart(fig5, use_container_width=True)
+            st.plotly_chart(fig5, use_column_width=True)
 
         with t4:
             df_no_uso = df_filtrado[df_filtrado['En_uso'].astype(str).str.lower().str.contains('no', na=False)].copy()
@@ -1238,7 +1238,7 @@ if not df_raw.empty:
                 fig6 = px.bar(prob_data, x='count', y='prob_txt', orientation='h', title="Causas del No Uso (Obras Inactivas)", color='count', color_continuous_scale='Reds', labels={'count': 'Frecuencia', 'prob_txt': 'Motivo detectado'})
                 fig6.update_layout(yaxis={'categoryorder': 'total ascending'})
                 fig6.update_traces(hovertemplate="Problema: %{y}<br>Obras afectadas: %{x}")
-                st.plotly_chart(fig6, use_container_width=True)
+                st.plotly_chart(fig6, use_column_width=True)
             else:
                 st.success("✨ ¡Genial! Según los filtros aplicados, todas las obras están en uso.")
 
@@ -1296,16 +1296,16 @@ if not df_raw.empty:
 
             with col_pdf:
                 pdf_bytes = construir_pdf_xls(tec_por_prov, asis_por_prov, usu_por_prov, est_por_prov, cal_por_prov, prob_por_prov, fecha_desde, fecha_hasta)
-                st.download_button("📥 Descargar Informe PDF", data=pdf_bytes, file_name="informe_mesa_agua.pdf", mime="application/pdf", use_container_width=True)
+                st.download_button("📥 Descargar Informe PDF", data=pdf_bytes, file_name="informe_mesa_agua.pdf", mime="application/pdf", use_column_width=True)
 
             with col_xls:
                 xlsx_bytes = construir_xlsx(tec_por_prov, asis_por_prov, usu_por_prov, est_por_prov, cal_por_prov, prob_por_prov)
-                st.download_button("📥 Descargar Resumen XLSX", data=xlsx_bytes, file_name="resumen_mesa_agua.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                st.download_button("📥 Descargar Resumen XLSX", data=xlsx_bytes, file_name="resumen_mesa_agua.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_column_width=True)
 
             with col_kml:
                 if not df_filtrado.empty:
                     kml_string = generar_kml_desde_df(df=df_filtrado, col_lat='lat', col_lon='lon', col_nombre='tecnologia_txt')
-                    st.download_button("🗺️ Descargar en KML", data=kml_string, file_name="obras_filtradas.kml", mime="application/vnd.google-earth.kml+xml", use_container_width=True)
+                    st.download_button("🗺️ Descargar en KML", data=kml_string, file_name="obras_filtradas.kml", mime="application/vnd.google-earth.kml+xml", use_column_width=True)
                 else:
                     st.warning("No hay registros para exportar en KML.")
 
