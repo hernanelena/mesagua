@@ -1083,17 +1083,20 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
 
                     st.markdown("---")
 
-                    st.download_button(
-                        label="📄 Descargar Ficha Técnica en PDF",
-                        data=lambda: construir_pdf_ficha_individual(
-                            seleccion, 
-                            foto_bytes=obtener_foto_api(FORM_ID, seleccion.get('_id'), id_adjunto, TOKEN)
-                        ),
-                        file_name=f"ficha_relevamiento_{int(seleccion.get('_id', 0))}.pdf",
-                        mime="application/pdf",
-                        use_column_width=True
+                    # 1. Generamos los bytes del PDF en una variable
+                    pdf_bytes = construir_pdf_ficha_individual(
+                        seleccion, 
+                        foto_bytes=foto_bytes_para_pdf
                     )
 
+                    # 2. Pasamos 'pdf_bytes' directamente a 'data'
+                    st.download_button(
+                        label="📄 Descargar Ficha Técnica en PDF",
+                        data=pdf_bytes,
+                        file_name=f"ficha_relevamiento_{int(seleccion.get('_id', 0))}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
                 else:
                     st.warning("No se encontraron datos para este punto.")
             else:
