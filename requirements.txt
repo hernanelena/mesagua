@@ -1,4 +1,4 @@
-streamlit==1.38.0
+streamlit==1.52.2
 starlette==0.37.2
 streamlit-folium>=0.22.0
 folium
