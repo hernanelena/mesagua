@@ -66,7 +66,7 @@ def obtener_foto_api(form_id, registro_id, id_adjunto, token):
     headers_api = {"Authorization": f"Token {token}"}
     
     try:
-        res = requests.get(url_final, headers=headers_api, timeout=6)
+        res = requests.get(url_final, headers=headers_api, timeout=12)
         if res.status_code == 200:
             content_type = res.headers.get('Content-Type', '').lower()
             
@@ -1058,48 +1058,58 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
                             if pd.notna(qual_trat) and str(qual_trat).strip() not in ['', 'None', 'nan']:
                                 st.write(f"**❓ Cuál tratamiento:** {str(qual_trat).strip()}")
 
-                    # --- FOTOGRAFÍA A DEMANDA ---
+                    # --- FOTOGRAFÍA A DEMANDA (SOLUCIÓN CORREGIDA) ---
                     foto_bytes_para_pdf = None
+                    registro_id_actual = (
+                        seleccion.get('_id')
+                        if pd.notna(seleccion.get('_id'))
+                        else seleccion.get('id')
+                    )
 
-                    # Clave única para controlar si se solicita la foto de este registro específico
-                    registro_id_actual = seleccion.get('_id') if pd.notna(seleccion.get('_id')) else seleccion.get('id')
-                    key_cargar_foto = f"cargar_foto_{registro_id_actual}"
+                    with st.expander('🖼️ **:blue[Ver Fotografía]**', expanded=False):
+                      adjuntos = seleccion.get('_attachments', [])
+                      if isinstance(adjuntos, str) and adjuntos.strip() != '':
+                        try:
+                          adjuntos = json.loads(adjuntos)
+                        except Exception:
+                          adjuntos = []
 
-                    if key_cargar_foto not in st.session_state:
-                        st.session_state[key_cargar_foto] = False
+                      id_adjunto = (
+                          adjuntos[0].get('id')
+                          if isinstance(adjuntos, list) and len(adjuntos) > 0
+                          else None
+                      )
 
-                    with st.expander("🖼️ **:blue[Ver Fotografía]**", expanded=False):
-                        adjuntos = seleccion.get('_attachments', [])
-                        if isinstance(adjuntos, str) and adjuntos.strip() != "":
-                            try:
-                                adjuntos = json.loads(adjuntos)
-                            except Exception:
-                                adjuntos = []
-
-                        id_adjunto = (
-                            adjuntos[0].get('id')
-                            if isinstance(adjuntos, list) and len(adjuntos) > 0
-                            else None
+                      if registro_id_actual and id_adjunto:
+                        # Usamos st.button directamente como condicional sin forzar st.rerun()
+                        btn_cargar = st.button(
+                            '📥 Cargar fotografía', key=f'btn_foto_{registro_id_actual}'
                         )
 
-                        if registro_id_actual and id_adjunto:
-                            # Si el usuario presiona el botón, activamos la carga a demanda
-                            if not st.session_state[key_cargar_foto]:
-                                if st.button("📥 Cargar fotografía a demanda", key=f"btn_{key_cargar_foto}"):
-                                    st.session_state[key_cargar_foto] = True
-                                    st.rerun()
-                            
-                            # Solo si fue activada la carga, realizamos la petición HTTP
-                            if st.session_state[key_cargar_foto]:
-                                with st.spinner("Descargando imagen desde servidor..."):
-                                    foto_bytes_para_pdf = obtener_foto_api(FORM_ID, registro_id_actual, id_adjunto, TOKEN)
-                                
-                                if foto_bytes_para_pdf:
-                                    st.image(foto_bytes_para_pdf, caption="Fotografía de la obra", use_container_width=True)
-                                else:
-                                    st.warning("No se pudo obtener la imagen.")
-                        else:
-                            st.info("Sin foto disponible para este registro.")
+                        # Si ya se cargó previamente en la sesión o si se presiona el botón en este ciclo:
+                        session_key = f'foto_data_{registro_id_actual}'
+
+                        if btn_cargar and session_key not in st.session_state:
+                          with st.spinner('Descargando imagen desde servidor...'):
+                            st.session_state[session_key] = obtener_foto_api(
+                                FORM_ID, registro_id_actual, id_adjunto, TOKEN
+                            )
+
+                        if session_key in st.session_state and st.session_state[session_key]:
+                          foto_bytes_para_pdf = st.session_state[session_key]
+                          st.image(
+                              foto_bytes_para_pdf,
+                              caption='Fotografía de la obra',
+                              use_container_width=True,
+                          )
+                        elif session_key in st.session_state and not st.session_state[session_key]:
+                          st.warning(
+                              'No se pudo obtener la imagen (verifique la conexión con Kobo).'
+                          )
+                      else:
+                        st.info('Sin foto disponible para este registro.')
+                        
+                        
                     st.markdown("---")
 
                     # 1. Generamos los bytes del PDF en una variable
