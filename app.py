@@ -1081,66 +1081,62 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
                                 st.write(f"**❓ Cuál tratamiento:** {str(qual_trat).strip()}")
 
                     # --- FOTOGRAFÍA A DEMANDA (SOLUCIÓN CORREGIDA) ---
-                    foto_bytes_para_pdf = None
+                    # --- FOTOGRAFÍA A DEMANDA (Estructura corregida) ---
                     registro_id_actual = (
                         seleccion.get('_id')
                         if pd.notna(seleccion.get('_id'))
                         else seleccion.get('id')
                     )
+                    session_key = f'foto_data_{registro_id_actual}' if registro_id_actual else None
+                    foto_bytes_para_pdf = None
+
+                    # 1. Recuperar foto guardada previamente de st.session_state fuera del expander
+                    if session_key and session_key in st.session_state:
+                        foto_bytes_para_pdf = st.session_state[session_key]
 
                     with st.expander('🖼️ **:blue[Ver Fotografía]**', expanded=False):
-                      adjuntos = seleccion.get('_attachments', [])
-                      if isinstance(adjuntos, str) and adjuntos.strip() != '':
-                        try:
-                          adjuntos = json.loads(adjuntos)
-                        except Exception:
-                          adjuntos = []
+                        adjuntos = seleccion.get('_attachments', [])
+                        if isinstance(adjuntos, str) and adjuntos.strip() != '':
+                            try:
+                                adjuntos = json.loads(adjuntos)
+                            except Exception:
+                                adjuntos = []
 
-                      id_adjunto = (
-                          adjuntos[0].get('id')
-                          if isinstance(adjuntos, list) and len(adjuntos) > 0
-                          else None
-                      )
-
-                      if registro_id_actual and id_adjunto:
-                        # Usamos st.button directamente como condicional sin forzar st.rerun()
-                        btn_cargar = st.button(
-                            '📥 Cargar fotografía', key=f'btn_foto_{registro_id_actual}'
+                        id_adjunto = (
+                            adjuntos[0].get('id')
+                            if isinstance(adjuntos, list) and len(adjuntos) > 0
+                            else None
                         )
 
-                        # Si ya se cargó previamente en la sesión o si se presiona el botón en este ciclo:
-                        session_key = f'foto_data_{registro_id_actual}'
+                        if registro_id_actual and id_adjunto:
+                            if st.button('📥 Cargar fotografía', key=f'btn_foto_{registro_id_actual}'):
+                                with st.spinner('Descargando imagen desde servidor...'):
+                                    imagen_descargada = obtener_foto_api(
+                                        FORM_ID, registro_id_actual, id_adjunto, TOKEN
+                                    )
+                                    st.session_state[session_key] = imagen_descargada
+                                    foto_bytes_para_pdf = imagen_descargada
 
-                        if btn_cargar and session_key not in st.session_state:
-                          with st.spinner('Descargando imagen desde servidor...'):
-                            st.session_state[session_key] = obtener_foto_api(
-                                FORM_ID, registro_id_actual, id_adjunto, TOKEN
-                            )
+                            # Mostrar en pantalla la foto usando la variable ya recuperada
+                            if foto_bytes_para_pdf:
+                                st.image(
+                                    foto_bytes_para_pdf,
+                                    caption='Fotografía de la obra',
+                                    use_container_width=True,
+                                )
+                            elif session_key in st.session_state and not st.session_state[session_key]:
+                                st.warning('No se pudo obtener la imagen (verifique la conexión con Kobo).')
+                        else:
+                            st.info('Sin foto disponible para este registro.')
 
-                        if session_key in st.session_state and st.session_state[session_key]:
-                          foto_bytes_para_pdf = st.session_state[session_key]
-                          st.image(
-                              foto_bytes_para_pdf,
-                              caption='Fotografía de la obra',
-                              use_container_width=True,
-                          )
-                        elif session_key in st.session_state and not st.session_state[session_key]:
-                          st.warning(
-                              'No se pudo obtener la imagen (verifique la conexión con Kobo).'
-                          )
-                      else:
-                        st.info('Sin foto disponible para este registro.')
-                        
-                        
                     st.markdown("---")
 
-                    # 1. Generamos los bytes del PDF en una variable
-                    pdf_bytes = construir_pdf_ficha_individual( 
+                    # 2. Invocación del PDF con garantía de recibir los bytes
+                    pdf_bytes = construir_pdf_ficha_individual(
                         seleccion, 
                         foto_bytes=foto_bytes_para_pdf
                     )
 
-                    # 2. Pasamos 'pdf_bytes' directamente a 'data'
                     st.download_button(
                         label="📄 Descargar Ficha Técnica en PDF",
                         data=pdf_bytes,
