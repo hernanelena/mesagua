@@ -58,7 +58,7 @@ def formatear_asistencia(row):
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def obtener_foto_api(form_id, registro_id, id_adjunto, token):
-    """Descarga la fotografía únicamente cuando se invoca a demanda y la almacena en caché."""
+    """Descarga la fotografía a demanda y la guarda en memoria por 1 hora."""
     if not (registro_id and id_adjunto and token):
         return None
     
@@ -66,19 +66,30 @@ def obtener_foto_api(form_id, registro_id, id_adjunto, token):
     headers_api = {"Authorization": f"Token {token}"}
     
     try:
-        res = requests.get(url_final, headers=headers_api, timeout=12)
+        # 1. Petición inicial a la API
+        res = requests.get(url_final, headers=headers_api, timeout=12, allow_redirects=True)
+        
         if res.status_code == 200:
             content_type = res.headers.get('Content-Type', '').lower()
             
+            # Si el endpoint devuelve un JSON con la URL directa/firmada
             if 'json' in content_type:
                 meta = res.json()
-                url_descarga = meta.get('download_url') or meta.get('file_url')
+                url_descarga = meta.get('download_url') or meta.get('file_url') or meta.get('download_small_url')
+                
                 if url_descarga:
-                    res = requests.get(url_descarga, headers=headers_api, timeout=6)
+                    # Si la URL apunta a un almacenamiento externo (S3/AWS/MinIO), no enviar headers_api
+                    if "amazon" in url_descarga or "s3" in url_descarga or "X-Amz" in url_descarga:
+                        res = requests.get(url_descarga, timeout=12)
+                    else:
+                        res = requests.get(url_descarga, headers=headers_api, timeout=12)
             
+            # Verificar si finalmente obtuvimos el archivo de imagen
             if res.status_code == 200 and 'image' in res.headers.get('Content-Type', '').lower():
                 return res.content
-    except Exception:
+
+    except Exception as e:
+        # Puedes imprimirlo en logs para depuración local si lo necesitas: print(f"Error foto: {e}")
         return None
         
     return None
