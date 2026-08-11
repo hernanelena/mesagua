@@ -1243,7 +1243,7 @@ if not df_raw.empty:
             calidad_filtro = st.selectbox("Calidad del Agua", ["Todas", "Buena", "Regular", "Mala"])
             usuario_filtro = st.selectbox("Tipo de Usuario", ["Todos", "Familias urbanas", "Escuelas", "Comunidad indígena", "Familia rural criolla"])
 
-        with st.expander("ℹ️ Información sobre la Mesa de Agua"):
+        with st.expander("ℹ️ Acerca de"):
             st.markdown("""
 La Mesa de Agua ha promovido el mapeo e integración de más de 300 obras de agua en estos departamentos. La base de datos generada, sistematiza la localización, tipo de tecnología, población beneficiaria y estado funcional de cada obra, y se actualiza periódicamente con la colaboración de INTA, FUNDAPAZ, ONG, Gobierno Provincial, municipios y comunidades.
 
