@@ -294,9 +294,6 @@ def construir_pdf_ficha_individual(seleccion, foto_bytes=None) -> bytes:
     # Condicionado: Si realiza tratamiento = "si", muestra qué tratamiento realiza
     if str(realiza_tratamiento).strip().lower() in ['si', 'sí'] and pd.notna(cual_tratamiento) and str(cual_tratamiento).strip() not in ['', 'None', 'nan']:
         detalles_data.append([Paragraph("Cuál Tratamiento:", ParagraphStyle('L', fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor('#1E3A8A'))), Paragraph(str(cual_tratamiento).strip(), val_style)])
-
-    detalles_data.append([Paragraph("Coordenadas:", ParagraphStyle('L', fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor('#1E3A8A'))), Paragraph(f"{float(seleccion.get('lat')):.5f}, {float(seleccion.get('lon')):.5f}", val_style)])
-
     if str(seleccion.get('En_uso', '')).lower() == 'no':
         prob_val = mapear_nombres_claros(seleccion.get('Problemas_asociados_al_No_uso'), 'problemas')
         if prob_val == "Otras":
@@ -305,6 +302,10 @@ def construir_pdf_ficha_individual(seleccion, foto_bytes=None) -> bytes:
                 prob_val = f"Otras: {str(ampliar_txt).strip()}"
         if prob_val:
             detalles_data.append([Paragraph("Causa Inactividad:", ParagraphStyle('L', fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor('#1E3A8A'))), Paragraph(prob_val, val_style)])
+            
+    detalles_data.append([Paragraph("Coordenadas:", ParagraphStyle('L', fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor('#1E3A8A'))), Paragraph(f"{float(seleccion.get('lat')):.5f}, {float(seleccion.get('lon')):.5f}", val_style)])
+
+    
 
     tabla_detalles = Table(detalles_data, colWidths=[4.2*cm, 13.8*cm])
     tabla_detalles.setStyle(TableStyle([
