@@ -1242,7 +1242,48 @@ if not df_raw.empty:
             estado_filtro = st.selectbox("Estado de la Obra", ["Todos", "Bueno", "Regular", "Malo"])
             calidad_filtro = st.selectbox("Calidad del Agua", ["Todas", "Buena", "Regular", "Mala"])
             usuario_filtro = st.selectbox("Tipo de Usuario", ["Todos", "Familias urbanas", "Escuelas", "Comunidad indígena", "Familia rural criolla"])
+        # =========================================================
+        # GUÍA DE USO / TUTORIAL EN EL SIDEBAR
+        # =========================================================
+        with st.expander("📖 Guía de Uso / Ayuda", expanded=False):
+            t1, t2, t3, t4 = st.tabs(["1. 🔍", "2. 🗺️", "3. 📋", "4. 📊"])
+            
+            with t1:
+                st.markdown("**🎛️ Filtros en el Sidebar**")
+                st.markdown("""
+                Ubicado a la izquierda, permite filtrar las obras registradas por:
+                * **Rango de fechas:** Selecciona períodos específicos.
+                * **Provincia y Depto:** Filtra territorialmente (Salta / Jujuy).
+                * **Tecnología y Uso:** Visualiza cisternas, pozos, redes o estados específicos.
+                * **Otros filtros:** Estado de la obra, calidad del agua y tipo de usuario.
 
+                """)
+                
+            with t2:
+                st.markdown("**📍 Mapa Interactivo**")
+                st.markdown("""
+                * **Marcadores por colores:** Representan cada tipo de tecnología hídrica.
+                * **Ver Ficha:** Haz clic sobre cualquier marcador para desplegar sus datos a la derecha.
+                * **Herramientas:** Incluye buscador de localidades 🔍, botón vista general 🗺️ y GPS 📍.
+                """)
+
+            with t3:
+                st.markdown("**📄 Ficha Técnica y Fotos**")
+                st.markdown("""
+                Al seleccionar un punto del mapa, verás:
+                * Resumen de la obra (estado, asistencia técnica, tipo de usuario, familias usuarias, calidad del agua, etc.).
+                * Visualización de la **fotografía de campo**.
+                * Botón para **descargar la ficha individual en PDF**.
+                """)
+
+            with t4:
+                st.markdown("**📈 Tablero e Informes**")
+                st.markdown("""
+                Debajo del mapa encontrarás pestañas con:
+                * **Gráficos:** Tecnologías, calidad, asistencia, usuarios y problemas.
+                * **Resumen Territorial:** Matriz por provincias y departamentos.
+                * **Exportación:** Descarga en **PDF**, **Excel (XLSX)** y **KML**.
+                """)
         with st.expander("ℹ️ Acerca de"):
             st.markdown("""
 La Mesa de Agua ha promovido el mapeo e integración de más de 300 obras de agua en estos departamentos. La base de datos generada, sistematiza la localización, tipo de tecnología, población beneficiaria y estado funcional de cada obra, y se actualiza periódicamente con la colaboración de INTA, FUNDAPAZ, ONG, Gobierno Provincial, municipios y comunidades.
