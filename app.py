@@ -1245,7 +1245,7 @@ if not df_raw.empty:
 
 
         st.markdown("---")
-        st.markdown("""<div style="text-align: center; font-size: 11px; opacity: 0.8;"><strong>Mesa del Agua para el Chaco Salteño</strong><br><span>Versión 1.3.0 (2026)</span><br><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" style="color: #1E3A8A; font-weight: bold;">Licencia CC BY-NC-SA 4.0</a></div>""", unsafe_allow_html=True)
+        st.markdown("""<div style="text-align: center; font-size: 11px; opacity: 0.8;"><strong>Mesa del Agua para el Chaco Salteño</strong><br><span>Versión 1.4.0 (2026)</span><br><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" style="color: #1E3A8A; font-weight: bold;">Licencia CC BY-NC-SA 4.0</a></div>""", unsafe_allow_html=True)
         st.markdown(" ") 
         
         with st.sidebar.expander("👥 Créditos"):
@@ -1274,12 +1274,14 @@ if not df_raw.empty:
         mask &= (df_raw['tecnolog'] == tec_key_buscada)
     if uso_filtro != "Todos":
         mask &= (df_raw['En_uso'] == uso_filtro)
-        if estado_filtro != "Todos":
+        
+    if estado_filtro != "Todos":
         mask &= (df_raw['estado_txt'] == estado_filtro)
     if calidad_filtro != "Todas":
         mask &= (df_raw['calidad_txt'] == calidad_filtro)
     if usuario_filtro != "Todos":
         mask &= (df_raw['usuario_txt'] == usuario_filtro)
+        
     df_filtrado = df_raw[mask].copy()
 
     # 5. RENDERIZAR MAPA Y FICHA
