@@ -1237,6 +1237,12 @@ if not df_raw.empty:
             if 'En_uso' in df_raw.columns:
                 opciones_uso += sorted(df_raw['En_uso'].dropna().unique().tolist())
             uso_filtro = st.selectbox("¿En Uso?", opciones_uso)
+            
+            # --- NUEVOS FILTROS AGREGADOS ---
+            estado_filtro = st.selectbox("Estado de la Obra", ["Todos", "Bueno", "Regular", "Malo"])
+            calidad_filtro = st.selectbox("Calidad del Agua", ["Todas", "Buena", "Regular", "Mala"])
+            usuario_filtro = st.selectbox("Tipo de Usuario", ["Todos", "Familias urbanas", "Escuelas", "Comunidad indígena", "Familia rural criolla"])
+
 
         st.markdown("---")
         st.markdown("""<div style="text-align: center; font-size: 11px; opacity: 0.8;"><strong>Mesa del Agua para el Chaco Salteño</strong><br><span>Versión 1.3.0 (2026)</span><br><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" style="color: #1E3A8A; font-weight: bold;">Licencia CC BY-NC-SA 4.0</a></div>""", unsafe_allow_html=True)
@@ -1246,6 +1252,18 @@ if not df_raw.empty:
             st.markdown("""<div style="font-size: 12px; line-height: 1.4;"><strong>Desarrollado por:</strong><br>Lic. Hernán Elena / INTA EEA Salta<br><br><strong>Mesa del Agua:</strong><ul style="margin: 4px 0 0 0; padding-left: 18px; font-size: 11px;"><li style="margin-bottom: 2px;">INTA Centro Regional Salta-Jujuy</li><li style="margin-bottom: 2px;">FUNDAPAZ</li><li style="margin-bottom: 2px;">Organizaciones de la Mesa del Agua</li><li style="margin-bottom: 2px;">Gobierno de Salta</li></ul></div>""", unsafe_allow_html=True)
 
     # 4. APLICACIÓN DE FILTROS AL DATAFRAME
+    def obtener_col_serie(df, posibles_nombres):
+        for col in posibles_nombres:
+            if col in df.columns: 
+                return df[col]
+        return pd.Series(index=df.index, dtype=object)
+
+    # Preparar columnas normalizadas para filtrar correctamente
+    df_raw['estado_txt'] = obtener_col_serie(df_raw, ['estado_de_la_obra', 'Estado_de_la_obra', 'estado']).apply(lambda x: mapear_nombres_claros(x, 'estado'))
+    df_raw['calidad_txt'] = obtener_col_serie(df_raw, ['calidad_del_agua', 'Calidad_del_agua', 'calidad']).apply(lambda x: mapear_nombres_claros(x, 'calidad'))
+    df_raw['usuario_txt'] = obtener_col_serie(df_raw, ['usuario', 'Usuario']).apply(lambda x: mapear_nombres_claros(x, 'usuario'))
+
+    
     mask = (df_raw['fecha_limpia'].dt.date >= fecha_desde) & (df_raw['fecha_limpia'].dt.date <= fecha_hasta)
     if prov_filtro != "Todas":
         mask &= (df_raw['Provincia_api'] == prov_filtro)
