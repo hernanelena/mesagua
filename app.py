@@ -1274,7 +1274,12 @@ if not df_raw.empty:
         mask &= (df_raw['tecnolog'] == tec_key_buscada)
     if uso_filtro != "Todos":
         mask &= (df_raw['En_uso'] == uso_filtro)
-        
+        if estado_filtro != "Todos":
+        mask &= (df_raw['estado_txt'] == estado_filtro)
+    if calidad_filtro != "Todas":
+        mask &= (df_raw['calidad_txt'] == calidad_filtro)
+    if usuario_filtro != "Todos":
+        mask &= (df_raw['usuario_txt'] == usuario_filtro)
     df_filtrado = df_raw[mask].copy()
 
     # 5. RENDERIZAR MAPA Y FICHA
