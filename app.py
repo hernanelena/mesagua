@@ -402,7 +402,6 @@ def construir_pdf_ficha_individual(seleccion, foto_bytes=None) -> bytes:
     buffer.close()
     return pdf_bytes
 
-
 class BuscadorArgenmap(MacroElement):
     def __init__(self):
         super().__init__()
@@ -412,7 +411,7 @@ class BuscadorArgenmap(MacroElement):
                 options: { position: 'topleft' },
                 onAdd: function (map) {
                     var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                    container.style.backgroundColor = 'white';
+                    container.style.backgroundColor = '#ffffff';
                     container.style.position = 'relative';
                     container.style.borderRadius = '4px';
                     container.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
@@ -427,14 +426,14 @@ class BuscadorArgenmap(MacroElement):
                     toggleBtn.style.textAlign = 'center';
                     toggleBtn.style.textDecoration = 'none';
                     toggleBtn.style.fontSize = '14px';
-                    toggleBtn.style.color = '#333';
+                    toggleBtn.style.color = '#333333';
 
                     var searchBox = L.DomUtil.create('div', '', container);
                     searchBox.style.display = 'none';
                     searchBox.style.position = 'absolute';
                     searchBox.style.top = '0';
                     searchBox.style.left = '32px';
-                    searchBox.style.backgroundColor = 'white';
+                    searchBox.style.backgroundColor = '#ffffff';
                     searchBox.style.padding = '3px';
                     searchBox.style.borderRadius = '0 4px 4px 0';
                     searchBox.style.boxShadow = '2px 1px 5px rgba(0,0,0,0.2)';
@@ -448,6 +447,9 @@ class BuscadorArgenmap(MacroElement):
                     input.style.padding = '4px 6px';
                     input.style.fontSize = '12px';
                     input.style.borderRadius = '3px';
+                    // FIX MODO OSCURO (input)
+                    input.style.backgroundColor = '#ffffff';
+                    input.style.color = '#111111';
 
                     var resultsList = L.DomUtil.create('div', '', searchBox);
                     resultsList.style.position = 'absolute';
@@ -456,12 +458,14 @@ class BuscadorArgenmap(MacroElement):
                     resultsList.style.width = '100%';
                     resultsList.style.maxHeight = '200px';
                     resultsList.style.overflowY = 'auto';
-                    resultsList.style.backgroundColor = 'white';
+                    resultsList.style.backgroundColor = '#ffffff';
                     resultsList.style.border = '1px solid #ccc';
                     resultsList.style.borderTop = 'none';
                     resultsList.style.boxShadow = '0px 4px 6px rgba(0,0,0,0.1)';
                     resultsList.style.display = 'none';
                     resultsList.style.zIndex = '1000';
+                    // FIX MODO OSCURO (lista)
+                    resultsList.style.color = '#111111';
 
                     L.DomEvent.disableClickPropagation(container);
                     L.DomEvent.disableScrollPropagation(resultsList);
@@ -501,10 +505,19 @@ class BuscadorArgenmap(MacroElement):
                                             item.style.cursor = 'pointer';
                                             item.style.fontSize = '11px';
                                             item.style.borderBottom = '1px solid #eee';
-                                            item.innerHTML = '📍 <b>' + loc.nombre + '</b>, <span style="color:#666;">' + loc.departamento.nombre + ', ' + loc.provincia.nombre + '</span>';
+                                            // FIX MODO OSCURO (elementos de la lista)
+                                            item.style.backgroundColor = '#ffffff';
+                                            item.style.color = '#111111';
+                                            item.innerHTML = '📍 <b style="color:#111111;">' + loc.nombre + '</b>, <span style="color:#555555;">' + loc.departamento.nombre + ', ' + loc.provincia.nombre + '</span>';
 
-                                            item.onmouseover = function() { item.style.backgroundColor = '#f0f4f8'; };
-                                            item.onmouseout = function() { item.style.backgroundColor = 'white'; };
+                                            item.onmouseover = function() { 
+                                                item.style.backgroundColor = '#f0f4f8'; 
+                                                item.style.color = '#111111';
+                                            };
+                                            item.onmouseout = function() { 
+                                                item.style.backgroundColor = '#ffffff'; 
+                                                item.style.color = '#111111';
+                                            };
 
                                             item.onclick = function() {
                                                 var lat = loc.centroide.lat;
@@ -514,7 +527,7 @@ class BuscadorArgenmap(MacroElement):
                                                 mapTarget.flyTo([lat, lon], 13);
                                                 L.popup()
                                                     .setLatLng([lat, lon])
-                                                    .setContent('<b>' + loc.nombre + '</b><br>' + loc.departamento.nombre + ', ' + loc.provincia.nombre)
+                                                    .setContent('<b style="color:#111111;">' + loc.nombre + '</b><br><span style="color:#333333;">' + loc.departamento.nombre + ', ' + loc.provincia.nombre + '</span>')
                                                     .openOn(mapTarget);
 
                                                 input.value = loc.nombre;
@@ -544,6 +557,7 @@ class BuscadorArgenmap(MacroElement):
             targetMap.addControl(new geocoderControl());
         {% endmacro %}
         """)
+
 
 
 # 1. CONFIGURACIÓN DE PÁGINA
