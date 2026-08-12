@@ -564,6 +564,19 @@ class BuscadorArgenmap(MacroElement):
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="MAPA MESA DE AGUA", page_icon="🚰", layout="wide")
 
+
+st.markdown("""
+    <head>
+        <title>Mapa Mesa del Agua | Mapeo Digital de Obras Hídricas</title>
+        <meta name="description" content="Plataforma de mapeo digital y relevamiento de infraestructura e instalaciones hídricas en el Chaco Salteño por INTA y Mesa del Agua.">
+        <meta name="keywords" content="Mesa del Agua, INTA, Chaco Salteño, Obras Hídricas, Salta, Jujuy, GIS, Mapa Interactivo">
+        <meta property="og:title" content="Mapa Mesa del Agua - Chaco Salteño">
+        <meta property="og:description" content="Mapeo digital de obras hídricas e infraestructura en Salta y Jujuy.">
+        <meta property="og:type" content="website">
+    </head>
+""", unsafe_allow_html=True)
+
+
 FORM_ID = "aHNGU6dn2MFGMpg9Y5M5sn"
 TOKEN = st.secrets["KOBO_TOKEN"]
 URL_MESAAGUA = f"https://territorios.inta.gob.ar/api/v2/assets/{FORM_ID}/data/?format=json"
