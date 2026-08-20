@@ -56,6 +56,15 @@ def formatear_asistencia(row):
     return txt_base
 
 
+def formatear_asistencia_corta(row):
+    val_raw = None
+    for col in ['asistencia_t_cnica_de_la_obra', 'Asistencia_t_cnica_de_la_obra', 'asistencia']:
+        if col in row and pd.notna(row[col]):
+            val_raw = row[col]
+            break
+    return mapear_nombres_claros(val_raw, 'asistencia')
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def obtener_foto_api(form_id, registro_id, id_adjunto, token):
     """Descarga la fotografía a demanda y la guarda en memoria por 1 hora."""
@@ -941,6 +950,8 @@ def renderizar_mapa_y_ficha(df_filtrado, deptos_features):
         df_filtrado['calidad_txt'] = obtener_col(df_filtrado, ['calidad_del_agua', 'Calidad_del_agua', 'calidad']).apply(lambda x: mapear_nombres_claros(x, 'calidad'))
         
         df_filtrado['asistencia_txt'] = df_filtrado.apply(formatear_asistencia, axis=1)
+
+        df_filtrado['asistencia_corta'] = df_filtrado.apply(formatear_asistencia_corta, axis=1) # Para gráficos y resúmenes
         
         df_filtrado['usuario_txt'] = obtener_col(df_filtrado, ['usuario', 'Usuario']).apply(lambda x: mapear_nombres_claros(x, 'usuario'))
         df_filtrado['prob_txt'] = obtener_col(df_filtrado, ['problemas_asociados_al_no_uso', 'Problemas_asociados_al_No_uso', 'causas_del_no_uso']).apply(lambda x: mapear_nombres_claros(x, 'problemas'))
@@ -1385,8 +1396,11 @@ Para más información: elena.hernan@inta.gob.ar
                 fig3.update_traces(hovertemplate="%{label}<br>Total: %{value}")
                 st.plotly_chart(fig3, use_container_width=True)
             with c_bar1:
-                asistencia_data = df_filtrado['asistencia_txt'].value_counts().reset_index()
-                fig4 = px.bar(asistencia_data, x='asistencia_txt', y='count', title="Asistencia Técnica", labels={'count': 'Obras', 'asistencia_txt': 'Origen'})
+                # asistencia_data = df_filtrado['asistencia_txt'].value_counts().reset_index()
+                # fig4 = px.bar(asistencia_data, x='asistencia_txt', y='count', title="Asistencia Técnica", labels={'count': 'Obras', 'asistencia_txt': 'Origen'})
+                asistencia_data = df_filtrado['asistencia_corta'].value_counts().reset_index()
+                fig4 = px.bar(asistencia_data, x='asistencia_corta', y='count', title="Asistencia Técnica", labels={'count': 'Obras', 'asistencia_corta': 'Origen'})
+                
                 fig4.update_traces(hovertemplate="Tipo: %{x}<br>Total: %{y}")
                 st.plotly_chart(fig4, use_container_width=True)
 
@@ -1442,7 +1456,8 @@ Para más información: elena.hernan@inta.gob.ar
             df_geo.loc[~df_geo['usuario_xls'].isin(_orden_usuarios()), 'usuario_xls'] = 'Otros'
 
             tec_por_prov = _matriz_por_provincia(df_geo.assign(tecnologia_txt=df_geo['tecnologia_txt'].fillna("Otros")), "tecnologia_txt", _orden_tecnologias())
-            asis_por_prov = _matriz_por_provincia(df_geo.assign(asistencia_txt=df_geo['asistencia_txt'].fillna("Sin asistencia")), "asistencia_txt", _orden_asistencia())
+            # asis_por_prov = _matriz_por_provincia(df_geo.assign(asistencia_txt=df_geo['asistencia_txt'].fillna("Sin asistencia")), "asistencia_txt", _orden_asistencia())
+            asis_por_prov = _matriz_por_provincia(df_geo.assign(asistencia_corta=df_geo['asistencia_corta'].fillna("Sin asistencia")), "asistencia_corta", _orden_asistencia())
             usu_por_prov = _matriz_por_provincia(df_geo, "usuario_xls", _orden_usuarios() + ["Otros"])
             est_por_prov = _matriz_por_provincia(df_geo.assign(estado_txt=df_geo['estado_txt'].fillna("Malo")), "estado_txt", _orden_estado())
             cal_por_prov = _matriz_por_provincia(df_geo.assign(calidad_txt=df_geo['calidad_txt'].fillna("Mala")), "calidad_txt", _orden_calidad())
